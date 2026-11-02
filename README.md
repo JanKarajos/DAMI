@@ -27,6 +27,12 @@ Lokálne spustenie:
 php -d upload_max_filesize=10M -d post_max_size=12M -S localhost:8000
 ```
 
+## Tím z ozdami.sk
+
+Pri prvom spustení, alebo pri aktualizácii databázy na verziu 3, sa automaticky pridá 8 ľudí zo sekcie Personál na ozdami.sk. Pridajú sa s titulmi, pozíciou, popisom, fotkami (`app/seed/team/`) a priradenými terapiami.
+
+E-maily terapeutov na webe nie sú, preto majú zástupnú adresu `…@doplnte-email.invalid`. Na zástupnú adresu sa nič neposiela a v administrácii je označená „doplňte e-mail“. Admin doplní skutočný e-mail a cez „Nastaviť nové heslo“ pošle terapeutovi prihlasovacie údaje.
+
 ## Fotky terapeutov
 
 - Fotku nahráva terapeut v portáli (Profil) alebo admin pri úprave terapeuta. Povolené sú formáty JPG, PNG a WEBP do 8 MB.

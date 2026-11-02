@@ -50,7 +50,7 @@
         ${p.photo ? `<span class="avatar has-photo"><img src="${esc(p.photo)}" alt=""></span>` : `<span class="avatar">${esc(p.initials)}</span>`}
         <span><strong>${esc(p.name)}</strong><br>
         <span class="small muted">${esc(p.position)}</span><br>
-        <span class="small">${esc(p.description.slice(0, 160))}${p.description.length > 160 ? '…' : ''}</span></span>
+        <span class="small">${esc(p.description.slice(0, 110))}${p.description.length > 110 ? '…' : ''}</span></span>
       </button>`).join('') : '<p class="muted">Pre túto terapiu zatiaľ nie je priradený žiadny terapeut. Kontaktujte nás prosím e-mailom.</p>';
     $$('.choice', list).forEach((el) => el.addEventListener('click', () => selectTherapist(+el.dataset.id)));
     go(2);

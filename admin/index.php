@@ -38,7 +38,7 @@ $assigned = [];
 foreach (db()->query('SELECT therapist_id, therapy_id FROM therapist_therapy') as $r) {
     $assigned[$r['therapist_id']][$r['therapy_id']] = true;
 }
-$s = db()->prepare("SELECT b.*, t.title, t.first_name, t.last_name FROM bookings b JOIN therapists t ON t.id=b.therapist_id
+$s = db()->prepare("SELECT b.*, t.title, t.title_after, t.first_name, t.last_name FROM bookings b JOIN therapists t ON t.id=b.therapist_id
                     WHERE b.status='confirmed' AND b.starts_at >= ? ORDER BY b.starts_at LIMIT 8");
 $s->execute([$now]);
 $next = $s->fetchAll();

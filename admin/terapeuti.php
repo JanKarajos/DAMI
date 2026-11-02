@@ -28,6 +28,7 @@ if (is_post()) {
     if ($action === 'save') {
         $d = [
             'title'       => mb_substr(post('title'), 0, 60),
+            'title_after' => mb_substr(post('title_after'), 0, 60),
             'first_name'  => mb_substr(post('first_name'), 0, 80),
             'last_name'   => mb_substr(post('last_name'), 0, 80),
             'email'       => mb_strtolower(mb_substr(post('email'), 0, 160)),
@@ -100,6 +101,10 @@ if (is_post()) {
     }
 
     if ($action === 'reset_password') {
+        if (is_placeholder_email($t['email'])) {
+            flash('error', 'Najprv doplňte skutočný e-mail terapeuta (slúži na prihlásenie) a uložte zmeny.');
+            redirect('admin/terapeuti.php?upravit=' . $id);
+        }
         $password = (string) ($_POST['new_password'] ?? '');
         if ($password !== '' && mb_strlen($password) < 8) {
             flash('error', 'Heslo musí mať aspoň 8 znakov.');
@@ -155,12 +160,12 @@ page_header('Terapeuti', 'admin', 'admin/terapeuti.php');
     Adresa: <?= e(abs_url('terapeut/prihlasenie.php')) ?><br>
     E-mail: <?= e($credentials['email']) ?><br>
     Heslo: <?= e($credentials['password']) ?><br><br>
-    <span style="font-family:var(--font-body)"><?= $credentials['mailed'] ? '✅ Údaje boli odoslané aj e-mailom.' : 'Údaje neboli odoslané e-mailom.' ?></span>
+    <span style="font-family:var(--font)"><?= $credentials['mailed'] ? '✅ Údaje boli odoslané aj e-mailom.' : 'Údaje neboli odoslané e-mailom.' ?></span>
   </div>
 <?php endif; ?>
 
 <?php if ($editing || $isNew):
-    $v = $old ?? ($editing ?: ['title' => '', 'first_name' => '', 'last_name' => '', 'email' => '', 'phone' => '', 'description' => '', 'position' => '', 'active' => 1, 'sort_order' => 0]);
+    $v = $old ?? ($editing ?: ['title' => '', 'title_after' => '', 'first_name' => '', 'last_name' => '', 'email' => '', 'phone' => '', 'description' => '', 'position' => '', 'active' => 1, 'sort_order' => 0]);
     $checked = $old ? array_map('intval', (array) ($old['therapies'] ?? [])) : ($editing ? therapy_ids_of_therapist((int) $editing['id']) : []);
 ?>
   <p><a href="<?= e(url('admin/terapeuti.php')) ?>">← späť na zoznam</a></p>
@@ -174,7 +179,9 @@ page_header('Terapeuti', 'admin', 'admin/terapeuti.php');
         <div class="form-row"><label>Titul</label><input type="text" name="title" value="<?= e($v['title']) ?>" placeholder="napr. Mgr., PhDr."></div>
         <div class="form-row"><label class="required">Meno</label><input type="text" name="first_name" required value="<?= e($v['first_name']) ?>"></div>
         <div class="form-row"><label class="required">Priezvisko</label><input type="text" name="last_name" required value="<?= e($v['last_name']) ?>"></div>
-        <div class="form-row"><label class="required">E-mail (slúži aj na prihlásenie)</label><input type="email" name="email" required value="<?= e($v['email']) ?>"></div>
+        <div class="form-row"><label>Titul za menom</label><input type="text" name="title_after" value="<?= e($v['title_after'] ?? '') ?>" placeholder="napr. PhD., BCBA"></div>
+        <div class="form-row"><label class="required">E-mail (slúži aj na prihlásenie)</label><input type="email" name="email" required value="<?= e($v['email']) ?>">
+          <?php if (is_placeholder_email((string) $v['email'])): ?><div class="help" style="color:var(--rose)">⚠ Zástupná adresa – doplňte skutočný e-mail terapeuta, potom mu nastavte heslo.</div><?php endif; ?></div>
         <div class="form-row"><label>Telefón</label><input type="tel" name="phone" value="<?= e($v['phone']) ?>"></div>
         <div class="form-row"><label>Pozícia</label><input type="text" name="position" value="<?= e($v['position']) ?>" placeholder="napr. ABA terapeut, BCBA supervízor"></div>
       </div>
@@ -250,7 +257,7 @@ page_header('Terapeuti', 'admin', 'admin/terapeuti.php');
         <tr>
           <td style="display:flex;align-items:center"><?= therapist_avatar_html($t, 'thumb') ?><strong><?= e(therapist_full_name($t)) ?></strong></td>
           <td><?= e($t['position']) ?></td>
-          <td class="small"><?= e($t['email']) ?><br><?= e($t['phone']) ?></td>
+          <td class="small"><?php if (is_placeholder_email($t['email'])): ?><span class="status status-booked">doplňte e-mail</span><?php else: ?><?= e($t['email']) ?><?php endif; ?><br><?= e($t['phone']) ?></td>
           <td class="small"><?= e(implode(', ', array_column($map[(int) $t['id']] ?? [], 'name'))) ?: '<span class="muted">—</span>' ?></td>
           <td>
             <span class="status <?= $t['active'] ? 'status-free' : 'status-cancelled' ?>"><?= $t['active'] ? 'Aktívny' : 'Neaktívny' ?></span>
