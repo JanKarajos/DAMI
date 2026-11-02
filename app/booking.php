@@ -9,6 +9,24 @@ function therapies_all(bool $onlyActive = true): array
     return db()->query($sql)->fetchAll();
 }
 
+const THERAPY_KINDS = ['therapy' => 'Terapia', 'diagnostic' => 'Diagnostika'];
+const BOOKING_MODES = ['online' => 'Online rezervácia v kalendári', 'inquiry' => 'Iba kontaktný formulár'];
+
+function therapy_is_online(array $t): bool
+{
+    return ($t['booking_mode'] ?? 'online') === 'online';
+}
+
+/** Rozdelí služby na ['therapy' => [...], 'diagnostic' => [...]]. */
+function therapies_grouped(array $list): array
+{
+    $out = array_fill_keys(array_keys(THERAPY_KINDS), []);
+    foreach ($list as $t) {
+        $out[isset(THERAPY_KINDS[$t['kind'] ?? '']) ? $t['kind'] : 'therapy'][] = $t;
+    }
+    return $out;
+}
+
 function therapy_find(int $id): ?array
 {
     $s = db()->prepare('SELECT * FROM therapies WHERE id = ?');
@@ -63,8 +81,8 @@ function therapy_ids_of_therapist(int $therapistId): array
 
 function therapist_does_therapy(int $therapistId, int $therapyId): bool
 {
-    $s = db()->prepare('SELECT 1 FROM therapist_therapy tt JOIN therapies th ON th.id = tt.therapy_id
-                        WHERE tt.therapist_id = ? AND tt.therapy_id = ? AND th.active = 1');
+    $s = db()->prepare("SELECT 1 FROM therapist_therapy tt JOIN therapies th ON th.id = tt.therapy_id
+                        WHERE tt.therapist_id = ? AND tt.therapy_id = ? AND th.active = 1 AND th.booking_mode = 'online'");
     $s->execute([$therapistId, $therapyId]);
     return (bool) $s->fetchColumn();
 }
@@ -130,6 +148,9 @@ function create_booking(int $slotId, int $therapyId, array $d): array
     $therapy = therapy_find($therapyId);
     if (!$therapy || !(int) $therapy['active']) {
         return [null, 'Zvolená terapia neexistuje.'];
+    }
+    if (!therapy_is_online($therapy)) {
+        return [null, 'Na túto službu sa nedá objednať online. Pošlite nám prosím dopyt cez kontaktný formulár.'];
     }
     $pdo->exec('BEGIN IMMEDIATE');
     try {

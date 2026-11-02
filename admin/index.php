@@ -33,6 +33,7 @@ $stats = [
     'upcoming' => $q("SELECT COUNT(*) FROM bookings WHERE status='confirmed' AND starts_at >= ?", [$now]),
     'free'     => $q("SELECT COUNT(*) FROM slots s WHERE s.starts_at >= ? AND NOT EXISTS (SELECT 1 FROM bookings b WHERE b.slot_id=s.id AND b.status='confirmed')", [$now]),
     'week'     => $q("SELECT COUNT(*) FROM bookings WHERE created_at >= ?", [date('Y-m-d H:i:s', strtotime('-7 days'))]),
+    'inquiries' => inquiries_new_count(),
 ];
 $assigned = [];
 foreach (db()->query('SELECT therapist_id, therapy_id FROM therapist_therapy') as $r) {
@@ -52,6 +53,7 @@ page_header('Prehľad', 'admin', 'admin/index.php');
     <div class="stat"><b><?= (int) $stats['upcoming'] ?></b>nadchádzajúcich rezervácií</div>
     <div class="stat"><b><?= (int) $stats['free'] ?></b>voľných termínov</div>
     <div class="stat"><b><?= (int) $stats['week'] ?></b>nových rezervácií za 7 dní</div>
+    <a class="stat" href="<?= e(url('admin/dopyty.php')) ?>"><b><?= (int) $stats['inquiries'] ?></b>nevybavených dopytov</a>
   </div>
 
   <div class="card">

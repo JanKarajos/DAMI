@@ -4,9 +4,9 @@ Rezervačný systém pre Občianske združenie DAMI (Prešov). Má tri časti:
 
 | Časť | Adresa | Na čo slúži |
 |---|---|---|
-| **Verejný web** | `/index.php`, `/rezervacia.php` | Prehľad terapií a tímu. Rezervácia v 4 krokoch: terapia → terapeut → kalendár s voľnými časmi → kontaktné údaje. |
+| **Verejný web** | `/index.php`, `/rezervacia.php`, `/kontakt.php` | Prehľad terapií, diagnostiky a tímu. Rezervácia v 4 krokoch: služba → terapeut → kalendár s voľnými časmi → kontaktné údaje. Služby „iba na dopyt“ (INPP) majú namiesto kalendára kontaktný formulár. |
 | **Portál terapeuta** | `/terapeut/` | Prihlásenie údajmi od admina. Vypisovanie termínov (jednotlivo aj hromadne), prehľad a rušenie rezervácií, úprava telefónu, popisu a fotky, zmena hesla. |
-| **Administrácia** | `/admin/` | Správa terapeutov a terapií, priradenie terapeut × terapia, heslá terapeutov, prehľad všetkých rezervácií. |
+| **Administrácia** | `/admin/` | Správa terapeutov, terapií a diagnostiky, dopyty z kontaktného formulára, priradenie terapeut × terapia, heslá terapeutov, prehľad všetkých rezervácií. |
 
 ## Požiadavky
 
@@ -32,6 +32,15 @@ php -d upload_max_filesize=10M -d post_max_size=12M -S localhost:8000
 Pri prvom spustení, alebo pri aktualizácii databázy na verziu 3, sa automaticky pridá 8 ľudí zo sekcie Personál na ozdami.sk. Pridajú sa s titulmi, pozíciou, popisom, fotkami (`app/seed/team/`) a priradenými terapiami.
 
 E-maily terapeutov na webe nie sú, preto majú zástupnú adresu `…@doplnte-email.invalid`. Na zástupnú adresu sa nič neposiela a v administrácii je označená „doplňte e-mail“. Admin doplní skutočný e-mail a cez „Nastaviť nové heslo“ pošle terapeutovi prihlasovacie údaje.
+
+## Terapie, diagnostika a kontaktný formulár
+
+Každá služba má v administrácii (Služby) dve nastavenia:
+
+- **Typ:** terapia alebo diagnostika. Diagnostika (ADOS-2) sa na webe aj v rezervácii zobrazuje v samostatnej sekcii.
+- **Spôsob objednania:** online kalendár alebo iba kontaktný formulár. Pri formulári (INPP) klient nevidí kalendár, ale pošle dopyt cez `/kontakt.php`. Dopyt sa uloží do sekcie **Dopyty** v administrácii. E-mail dostane centrum (`contact.email`), kópia `mail.admin_copy` a terapeuti priradení k službe. Klientovi príde automatické potvrdenie.
+
+Formulár má ochranu proti spamu (skryté pole a najviac 5 dopytov za hodinu z jednej IP adresy). Pri aktualizácii databázy na verziu 4 sa INPP automaticky prepne na kontaktný formulár a ADOS-2 na diagnostiku.
 
 ## Fotky terapeutov
 

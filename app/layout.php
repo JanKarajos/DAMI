@@ -11,8 +11,9 @@ function page_header(string $title, string $area = 'public', string $active = ''
         'admin' => current_admin() ? [
             'admin/index.php'      => 'Prehľad',
             'admin/terapeuti.php'  => 'Terapeuti',
-            'admin/terapie.php'    => 'Terapie',
+            'admin/terapie.php'    => 'Služby',
             'admin/rezervacie.php' => 'Rezervácie',
+            'admin/dopyty.php'     => 'Dopyty' . (($n = inquiries_new_count()) ? " ($n)" : ''),
             'admin/heslo.php'      => 'Môj účet',
             'admin/odhlasenie.php' => 'Odhlásiť',
         ] : ['index.php' => 'Späť na web'],
@@ -24,7 +25,8 @@ function page_header(string $title, string $area = 'public', string $active = ''
         ] : ['index.php' => 'Späť na web'],
         default => [
             'index.php#uvod'     => 'Úvod',
-            'index.php#sluzby'   => 'Služby',
+            'index.php#sluzby'   => 'Terapie',
+            'index.php#diagnostika' => 'Diagnostika',
             'index.php#personal' => 'Personál',
             'index.php#kontakty' => 'Kontakty',
             'rezervacia.php'     => 'Rezervovať termín',
@@ -42,7 +44,7 @@ function page_header(string $title, string $area = 'public', string $active = ''
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title><?= e($title) ?> | <?= e($site) ?></title>
-<link rel="stylesheet" href="<?= e(url('assets/style.css')) ?>?v=2">
+<link rel="stylesheet" href="<?= e(url('assets/style.css')) ?>?v=3">
 <link rel="icon" type="image/png" href="<?= e(url('assets/favicon.png')) ?>">
 </head>
 <body class="area-<?= e($area) ?>">
@@ -94,6 +96,7 @@ function page_footer(): void
         <h4>Odkazy</h4>
         <p><a href="<?= e(cfg('main_site_url')) ?>">ozdami.sk</a><br>
         <a href="<?= e(url('rezervacia.php')) ?>">Online rezervácia</a><br>
+        <a href="<?= e(url('kontakt.php')) ?>">Kontaktný formulár</a><br>
         <a href="<?= e(url('terapeut/prihlasenie.php')) ?>">Prihlásenie pre terapeutov</a><br>
         <a href="<?= e(url('admin/prihlasenie.php')) ?>">Administrácia</a></p>
       </div>

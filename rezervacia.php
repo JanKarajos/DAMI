@@ -5,7 +5,8 @@ $therapies = therapies_all();
 $data = ['therapies' => [], 'therapists' => []];
 foreach ($therapies as $t) {
     $ids = [];
-    foreach (therapists_for_therapy((int) $t['id']) as $p) {
+    $online = therapy_is_online($t);
+    foreach ($online ? therapists_for_therapy((int) $t['id']) : [] as $p) {
         $ids[] = (int) $p['id'];
         $data['therapists'][$p['id']] ??= [
             'id' => (int) $p['id'],
@@ -23,6 +24,8 @@ foreach ($therapies as $t) {
         'duration' => (int) $t['duration_min'],
         'price' => $t['price'],
         'therapists' => $ids,
+        'kind' => $t['kind'] === 'diagnostic' ? 'diagnostic' : 'therapy',
+        'inquiryUrl' => $online ? null : url('kontakt.php?terapia=' . $t['id']),
     ];
 }
 $data['preselect'] = (int) ($_GET['terapia'] ?? 0);
@@ -35,14 +38,14 @@ page_header('Rezervácia termínu', 'public', 'rezervacia.php');
 <section class="page-hero">
   <div class="container">
     <h1>Rezervácia termínu</h1>
-    <p class="muted mt-0">Vyberte si terapiu, terapeuta a voľný čas v kalendári.</p>
+    <p class="muted mt-0">Vyberte si službu, terapeuta a voľný čas v kalendári.</p>
   </div>
 </section>
 
 <section class="section" style="padding-top:32px">
   <div class="container" id="booking">
     <ol class="steps">
-      <li data-step="1"><span>1</span> Terapia</li>
+      <li data-step="1"><span>1</span> Služba</li>
       <li data-step="2"><span>2</span> Terapeut</li>
       <li data-step="3"><span>3</span> Termín</li>
       <li data-step="4"><span>4</span> Údaje</li>
@@ -50,13 +53,13 @@ page_header('Rezervácia termínu', 'public', 'rezervacia.php');
 
     <!-- Krok 1 -->
     <div class="step-panel" data-panel="1">
-      <h2>Akú terapiu si želáte?</h2>
-      <div class="choice-grid" id="therapy-list"></div>
+      <h2>O akú službu máte záujem?</h2>
+      <div id="therapy-list"></div>
     </div>
 
     <!-- Krok 2 -->
     <div class="step-panel hidden" data-panel="2">
-      <button class="btn-link back-link" data-back="1">← späť na výber terapie</button>
+      <button class="btn-link back-link" data-back="1">← späť na výber služby</button>
       <h2>Vyberte terapeuta</h2>
       <p class="muted" id="therapist-intro"></p>
       <div class="choice-grid" id="therapist-list"></div>
@@ -130,5 +133,5 @@ page_header('Rezervácia termínu', 'public', 'rezervacia.php');
   </div>
 </section>
 <script>window.BOOKING = <?= json_encode($data, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) ?>;</script>
-<script src="<?= e(url('assets/booking.js')) ?>?v=1"></script>
+<script src="<?= e(url('assets/booking.js')) ?>?v=2"></script>
 <?php page_footer();

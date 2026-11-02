@@ -3,7 +3,9 @@ require dirname(__DIR__) . '/app/bootstrap.php';
 $me = require_therapist();
 $myId = (int) $me['id'];
 
-$myTherapies = therapies_by_therapist()[$myId] ?? [];
+$myAllTherapies = therapies_by_therapist()[$myId] ?? [];
+// Do kalendára patria len služby s online rezerváciou (napr. INPP ide cez kontaktný formulár).
+$myTherapies = array_values(array_filter($myAllTherapies, 'therapy_is_online'));
 $defaultDuration = $myTherapies ? (int) $myTherapies[0]['duration_min'] : 60;
 $myTherapyIds = array_map(fn($t) => (int) $t['id'], $myTherapies);
 
@@ -118,8 +120,10 @@ page_header('Moje termíny', 'therapist', 'terapeut/index.php');
       <div class="stat"><b><?= (int) $st['week'] ?></b>rezervácií v najbližších 7 dňoch</div>
     </div>
 
-    <?php if (!$myTherapies): ?>
+    <?php if (!$myAllTherapies): ?>
       <div class="alert alert-info">Zatiaľ vám nebola priradená žiadna terapia. Klienti sa k vám nebudú môcť objednať, kým vám administrátor terapiu nepriradí.</div>
+    <?php elseif (!$myTherapies): ?>
+      <div class="alert alert-info">Vaše služby (<?= e(implode(', ', array_column($myAllTherapies, 'name'))) ?>) sa objednávajú cez kontaktný formulár – klienti ich v online kalendári nevidia. Dopyty spracúva centrum.</div>
     <?php endif; ?>
 
     <div class="dash-grid">
@@ -228,6 +232,9 @@ function therapy_select(array $myTherapies): string
 {
     $h = '<select name="therapy_id"><option value="">Ktorákoľvek moja terapia</option>';
     foreach ($myTherapies as $t) {
+        if (!therapy_is_online($t)) {
+            continue;
+        }
         $h .= '<option value="' . (int) $t['id'] . '">Len: ' . e($t['name']) . '</option>';
     }
     return $h . '</select>';

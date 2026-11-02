@@ -42,29 +42,44 @@ page_header('Online rezervácia');
   </div>
 </section>
 
-<section class="section section-white" id="sluzby">
+<?php
+$groups = therapies_grouped($therapies);
+$sections = [
+    'therapy'    => ['sluzby', 'section-white', 'Terapie', 'Vyberte si oblasť, o ktorú máte záujem.', 'Programy sú individuálne a prispôsobené potrebám a možnostiam každého dieťaťa.'],
+    'diagnostic' => ['diagnostika', '', 'Diagnostika', 'Odborné posúdenie ako prvý krok.', 'Štandardizované diagnostické metodiky, na základe ktorých odporučíme ďalší postup.'],
+];
+foreach ($sections as $kind => [$anchor, $bg, $kicker, $title, $lead]):
+    if (!$groups[$kind] && $kind !== 'therapy') continue; ?>
+<section class="section <?= $bg ?>" id="<?= $anchor ?>">
   <div class="container">
     <div class="section-head">
-      <div class="kicker">Služby</div>
-      <h2>Vyberte si oblasť, o ktorú máte záujem.</h2>
-      <p>Programy sú individuálne a prispôsobené potrebám a možnostiam každého dieťaťa.</p>
+      <div class="kicker"><?= e($kicker) ?></div>
+      <h2><?= e($title) ?></h2>
+      <p><?= e($lead) ?></p>
     </div>
     <div class="grid grid-2">
-      <?php foreach ($therapies as $t): ?>
+      <?php foreach ($groups[$kind] as $t): $online = therapy_is_online($t); ?>
         <article class="therapy-card">
-          <div class="meta"><?= (int) $t['duration_min'] ?> min<?= $t['price'] !== '' ? ' · ' . e($t['price']) : '' ?></div>
+          <div class="meta"><?= $online ? (int) $t['duration_min'] . ' min' : 'Na objednávku cez formulár' ?><?= $t['price'] !== '' ? ' · ' . e($t['price']) : '' ?></div>
           <h3><?= e($t['name']) ?></h3>
           <p><?= nl2br(e($t['description'])) ?></p>
-          <a class="btn btn-light btn-sm" href="<?= e(url('rezervacia.php?terapia=' . $t['id'])) ?>">Rezervovať <span>↘</span></a>
+          <?php if ($online): ?>
+            <a class="btn btn-light btn-sm" href="<?= e(url('rezervacia.php?terapia=' . $t['id'])) ?>">Rezervovať <span>↘</span></a>
+          <?php else: ?>
+            <a class="btn btn-light btn-sm" href="<?= e(url('kontakt.php?terapia=' . $t['id'])) ?>">Poslať dopyt <span>↘</span></a>
+          <?php endif; ?>
         </article>
       <?php endforeach; ?>
-      <?php if (!$therapies): ?><p class="muted">Ponuka služieb sa pripravuje.</p><?php endif; ?>
+      <?php if (!$groups[$kind]): ?><p class="muted">Ponuka služieb sa pripravuje.</p><?php endif; ?>
     </div>
+    <?php if ($kind === 'therapy'): ?>
     <div class="chips" style="margin-top:46px">
       <?php foreach (['spolupráca', 'hra', 'dôvera', 'pokrok', 'komunikácia', 'samostatnosť'] as $c): ?><span class="chip"><?= $c ?></span><?php endforeach; ?>
     </div>
+    <?php endif; ?>
   </div>
 </section>
+<?php endforeach; ?>
 
 <section class="section section-soft" id="personal">
   <div class="container">
@@ -107,6 +122,7 @@ page_header('Online rezervácia');
         <div class="contact-card"><div class="label">Telefón</div><a href="tel:<?= e(preg_replace('/\s+/', '', (string) cfg('contact.phone'))) ?>"><?= e(cfg('contact.phone')) ?></a></div>
       <?php endif; ?>
     </div>
+    <p style="margin-top:28px"><a class="btn" href="<?= e(url('kontakt.php')) ?>">Napísať nám <span>↘</span></a></p>
   </div>
 </section>
 <?php page_footer();
