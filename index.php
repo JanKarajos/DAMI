@@ -76,7 +76,7 @@ page_header('Online rezervácia');
       <div class="grid grid-3">
         <?php foreach ($therapists as $p): ?>
           <article class="person-card">
-            <div class="person-photo"><?= e(mb_substr($p['first_name'], 0, 1) . mb_substr($p['last_name'], 0, 1)) ?></div>
+            <?= therapist_avatar_html($p) ?>
             <?php if ($p['position']): ?><div class="position"><?= e($p['position']) ?></div><?php endif; ?>
             <h3><?= e(therapist_full_name($p)) ?></h3>
             <?php if ($p['description']): ?><p class="small"><?= nl2br(e($p['description'])) ?></p><?php endif; ?>

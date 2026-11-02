@@ -72,6 +72,17 @@ if (is_post()) {
         }
         $pdo->commit();
 
+        // Fotka (nahranie / odstránenie)
+        $t = therapist_find($id);
+        [$photo, $photoErr] = therapist_photo_upload($id);
+        if ($photoErr) {
+            flash('error', $photoErr);
+        } elseif ($photo) {
+            therapist_photo_set($t, $photo);
+        } elseif (post('remove_photo') === '1') {
+            therapist_photo_set($t, '');
+        }
+
         if (!post('id')) {
             $t = therapist_find($id);
             $mailed = post('send_mail') === '1' && send_credentials_mail($t, $password, true);
@@ -116,6 +127,7 @@ if (is_post()) {
             flash('error', 'Terapeut má nadchádzajúce rezervácie. Najprv ich zrušte, alebo ho len deaktivujte.');
         } else {
             db()->prepare('DELETE FROM therapists WHERE id = ?')->execute([$id]);
+            therapist_photo_delete_file((string) $t['photo']);
             flash('success', 'Terapeut ' . therapist_full_name($t) . ' bol zmazaný.');
         }
         redirect('admin/terapeuti.php');
@@ -153,7 +165,7 @@ page_header('Terapeuti', 'admin', 'admin/terapeuti.php');
 ?>
   <p><a href="<?= e(url('admin/terapeuti.php')) ?>">← späť na zoznam</a></p>
   <div class="dash-grid" style="grid-template-columns:minmax(0,2fr) minmax(0,1fr)">
-    <form method="post" class="card">
+    <form method="post" class="card" enctype="multipart/form-data">
       <?= csrf_field() ?>
       <input type="hidden" name="action" value="save">
       <input type="hidden" name="id" value="<?= (int) ($editing['id'] ?? 0) ?>">
@@ -167,6 +179,18 @@ page_header('Terapeuti', 'admin', 'admin/terapeuti.php');
         <div class="form-row"><label>Pozícia</label><input type="text" name="position" value="<?= e($v['position']) ?>" placeholder="napr. ABA terapeut, BCBA supervízor"></div>
       </div>
       <div class="form-row"><label>Stručný popis</label><textarea name="description"><?= e($v['description']) ?></textarea></div>
+      <div class="photo-edit">
+        <div class="photo-preview" id="photo-preview">
+          <?php $pu = $editing ? therapist_photo_url($editing) : null; ?>
+          <?php if ($pu): ?><img src="<?= e($pu) ?>" alt=""><?php else: ?><span>📷</span><?php endif; ?>
+        </div>
+        <div>
+          <label for="photo">Fotka</label>
+          <input type="file" id="photo" name="photo" accept="image/jpeg,image/png,image/webp">
+          <div class="help">JPG, PNG alebo WEBP, max. 8 MB. Oreže sa na štvorec. Terapeut si ju môže zmeniť aj sám.</div>
+          <?php if ($pu): ?><label class="check small" style="margin-top:8px"><input type="checkbox" name="remove_photo" value="1"> Odstrániť fotku</label><?php endif; ?>
+        </div>
+      </div>
       <div class="form-row"><label>Terapie, ktoré vykonáva</label>
         <div class="checks">
           <?php foreach ($therapies as $th): ?>
@@ -224,7 +248,7 @@ page_header('Terapeuti', 'admin', 'admin/terapeuti.php');
       <tbody>
       <?php foreach ($list as $t): ?>
         <tr>
-          <td><strong><?= e(therapist_full_name($t)) ?></strong></td>
+          <td style="display:flex;align-items:center"><?= therapist_avatar_html($t, 'thumb') ?><strong><?= e(therapist_full_name($t)) ?></strong></td>
           <td><?= e($t['position']) ?></td>
           <td class="small"><?= e($t['email']) ?><br><?= e($t['phone']) ?></td>
           <td class="small"><?= e(implode(', ', array_column($map[(int) $t['id']] ?? [], 'name'))) ?: '<span class="muted">—</span>' ?></td>
@@ -246,4 +270,17 @@ page_header('Terapeuti', 'admin', 'admin/terapeuti.php');
 <?php endif; ?>
 </div>
 </section>
+<script>
+(function () {
+  var input = document.getElementById('photo'), box = document.getElementById('photo-preview');
+  if (!input || !box) return;
+  input.addEventListener('change', function () {
+    var f = input.files && input.files[0];
+    if (!f) return;
+    var img = document.createElement('img');
+    img.src = URL.createObjectURL(f);
+    box.innerHTML = ''; box.appendChild(img);
+  });
+})();
+</script>
 <?php page_footer();

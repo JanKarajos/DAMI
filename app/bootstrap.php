@@ -12,6 +12,7 @@ require __DIR__ . '/helpers.php';
 require __DIR__ . '/auth.php';
 require __DIR__ . '/mailer.php';
 require __DIR__ . '/booking.php';
+require __DIR__ . '/photos.php';
 require __DIR__ . '/layout.php';
 
 if (PHP_SAPI !== 'cli') {
