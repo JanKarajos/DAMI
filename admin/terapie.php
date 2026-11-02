@@ -121,7 +121,7 @@ page_header('Terapie', 'admin', 'admin/terapie.php');
 <?php else:
     $list = therapies_all(false);
     $counts = [];
-    foreach (db()->query('SELECT tt.therapy_id, t.title, t.first_name, t.last_name FROM therapist_therapy tt JOIN therapists t ON t.id = tt.therapist_id ORDER BY t.last_name') as $r) {
+    foreach (db()->query('SELECT tt.therapy_id, t.title, t.title_after, t.first_name, t.last_name FROM therapist_therapy tt JOIN therapists t ON t.id = tt.therapist_id ORDER BY t.last_name') as $r) {
         $counts[(int) $r['therapy_id']][] = therapist_full_name($r);
     }
 ?>

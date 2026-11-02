@@ -17,7 +17,7 @@ if (is_post() && post('action') === 'cancel') {
 
 $showPast = isset($_GET['minule']);
 $filterT = (int) ($_GET['terapeut'] ?? 0);
-$sql = 'SELECT b.*, t.title, t.first_name, t.last_name, t.email AS therapist_email, t.phone AS therapist_phone FROM bookings b
+$sql = 'SELECT b.*, t.title, t.title_after, t.first_name, t.last_name, t.email AS therapist_email, t.phone AS therapist_phone FROM bookings b
         JOIN therapists t ON t.id = b.therapist_id WHERE b.starts_at ' . ($showPast ? '<' : '>=') . ' ?';
 $params = [date('Y-m-d H:i')];
 if ($filterT) {

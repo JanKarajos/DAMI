@@ -7,7 +7,7 @@ declare(strict_types=1);
  */
 function send_mail(string $to, string $subject, string $html, ?string $replyTo = null): bool
 {
-    if (!filter_var($to, FILTER_VALIDATE_EMAIL)) {
+    if (!filter_var($to, FILTER_VALIDATE_EMAIL) || is_placeholder_email($to)) {
         return false;
     }
     $fromEmail = (string) cfg('mail.from_email');
@@ -48,6 +48,12 @@ function send_mail(string $to, string $subject, string $html, ?string $replyTo =
         error_log('[DAMI mail] ' . $ex->getMessage());
         return false;
     }
+}
+
+/** Zástupný e-mail (terapeut bez doplneného e-mailu) – nikam sa neposiela. */
+function is_placeholder_email(string $email): bool
+{
+    return str_ends_with(mb_strtolower($email), '.invalid');
 }
 
 function smtp_send(string $from, string $to, string $headers, string $body): bool

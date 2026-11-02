@@ -102,7 +102,7 @@ function free_slots(int $therapistId, int $therapyId, string $from, string $to):
 function booking_find_by_token(string $token): ?array
 {
     $s = db()->prepare(
-        'SELECT b.*, t.title, t.first_name, t.last_name, t.email AS therapist_email, t.phone AS therapist_phone
+        'SELECT b.*, t.title, t.title_after, t.first_name, t.last_name, t.email AS therapist_email, t.phone AS therapist_phone
          FROM bookings b JOIN therapists t ON t.id = b.therapist_id WHERE b.token = ?'
     );
     $s->execute([$token]);
@@ -112,7 +112,7 @@ function booking_find_by_token(string $token): ?array
 function booking_find(int $id): ?array
 {
     $s = db()->prepare(
-        'SELECT b.*, t.title, t.first_name, t.last_name, t.email AS therapist_email, t.phone AS therapist_phone
+        'SELECT b.*, t.title, t.title_after, t.first_name, t.last_name, t.email AS therapist_email, t.phone AS therapist_phone
          FROM bookings b JOIN therapists t ON t.id = b.therapist_id WHERE b.id = ?'
     );
     $s->execute([$id]);

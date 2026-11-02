@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+const PLACEHOLDER_EMAIL_DOMAIN = 'doplnte-email.invalid';
+
 function db(): PDO
 {
     static $pdo = null;
@@ -33,6 +35,54 @@ function migrate(PDO $pdo): void
         // v2: fotka terapeuta (relatívna cesta k súboru v uploads/)
         $pdo->exec("ALTER TABLE therapists ADD COLUMN photo TEXT NOT NULL DEFAULT ''");
         $pdo->exec('PRAGMA user_version = 2');
+    }
+    if ($version < 3) {
+        // v3: titul za menom + tím z www.ozdami.sk
+        $pdo->exec("ALTER TABLE therapists ADD COLUMN title_after TEXT NOT NULL DEFAULT ''");
+        seed_team($pdo);
+        $pdo->exec('PRAGMA user_version = 3');
+    }
+}
+
+/** Pridá tím OZ DAMI (len tých, ktorí ešte v databáze nie sú). */
+function seed_team(PDO $pdo): void
+{
+    $team = require APP_ROOT . '/app/seed/team.php';
+    $exists = $pdo->prepare('SELECT 1 FROM therapists WHERE first_name = ? AND last_name = ?');
+    $therapy = $pdo->prepare('SELECT id FROM therapies WHERE name = ?');
+    $ins = $pdo->prepare(
+        'INSERT INTO therapists (title, first_name, last_name, title_after, email, phone, description, position,
+            password_hash, must_change_password, active, sort_order)
+         VALUES (?, ?, ?, ?, ?, \'\', ?, ?, ?, 1, 1, ?)'
+    );
+    $link = $pdo->prepare('INSERT OR IGNORE INTO therapist_therapy (therapist_id, therapy_id) VALUES (?, ?)');
+    $photo = $pdo->prepare('UPDATE therapists SET photo = ? WHERE id = ?');
+
+    foreach ($team as $i => $m) {
+        $exists->execute([$m['first_name'], $m['last_name']]);
+        if ($exists->fetchColumn()) {
+            continue;
+        }
+        // E-mail zatiaľ neznámy – zástupná adresa (.invalid sa nikdy nedoručí), heslo náhodné a nikde nezobrazené.
+        $ins->execute([
+            $m['title'], $m['first_name'], $m['last_name'], $m['title_after'],
+            $m['slug'] . '@' . PLACEHOLDER_EMAIL_DOMAIN, $m['description'], $m['position'],
+            password_hash(bin2hex(random_bytes(16)), PASSWORD_DEFAULT), ($i + 1) * 10,
+        ]);
+        $id = (int) $pdo->lastInsertId();
+        foreach ($m['therapies'] as $name) {
+            $therapy->execute([$name]);
+            if ($tid = $therapy->fetchColumn()) {
+                $link->execute([$id, $tid]);
+            }
+        }
+        $src = APP_ROOT . '/app/seed/team/' . $m['slug'] . '.jpg';
+        if (is_file($src) && function_exists('photo_store_image')) {
+            [$rel] = photo_store_image($src, $id);
+            if ($rel) {
+                $photo->execute([$rel, $id]);
+            }
+        }
     }
 }
 

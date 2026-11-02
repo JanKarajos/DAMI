@@ -92,7 +92,8 @@ function json_out($data, int $status = 200): never
 
 function therapist_full_name(array $t): string
 {
-    return trim(($t['title'] ? $t['title'] . ' ' : '') . $t['first_name'] . ' ' . $t['last_name']);
+    $name = trim(($t['title'] ? $t['title'] . ' ' : '') . $t['first_name'] . ' ' . $t['last_name']);
+    return !empty($t['title_after']) ? $name . ', ' . $t['title_after'] : $name;
 }
 
 const SK_DAYS = ['nedeľa', 'pondelok', 'utorok', 'streda', 'štvrtok', 'piatok', 'sobota'];

@@ -17,7 +17,7 @@ if (is_post() && post('action') === 'cancel') {
 
 $showPast = isset($_GET['minule']);
 $s = db()->prepare(
-    'SELECT b.*, t.title, t.first_name, t.last_name, t.email AS therapist_email, t.phone AS therapist_phone FROM bookings b
+    'SELECT b.*, t.title, t.title_after, t.first_name, t.last_name, t.email AS therapist_email, t.phone AS therapist_phone FROM bookings b
      JOIN therapists t ON t.id = b.therapist_id
      WHERE b.therapist_id = ? AND b.starts_at ' . ($showPast ? '<' : '>=') . ' ?
      ORDER BY b.starts_at ' . ($showPast ? 'DESC LIMIT 200' : 'ASC')

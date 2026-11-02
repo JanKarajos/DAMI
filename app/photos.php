@@ -39,6 +39,20 @@ function therapist_photo_upload(int $therapistId, string $field = 'photo'): arra
         return [null, 'Fotka musí mať aspoň 100×100 px a najviac 40 Mpx.'];
     }
 
+    return photo_store_image($f['tmp_name'], $therapistId, $info, true);
+}
+
+/**
+ * Uloží obrázok ako fotku terapeuta (štvorec PHOTO_SIZE, JPG, bez EXIF).
+ * Vracia [relatívna cesta|null, chyba|null].
+ */
+function photo_store_image(string $path, int $therapistId, ?array $info = null, bool $uploaded = false): array
+{
+    $info ??= @getimagesize($path);
+    $allowed = [IMAGETYPE_JPEG => 'jpg', IMAGETYPE_PNG => 'png', IMAGETYPE_WEBP => 'webp'];
+    if (!$info || !isset($allowed[$info[2]])) {
+        return [null, 'Povolené sú iba obrázky JPG, PNG alebo WEBP.'];
+    }
     $dir = APP_ROOT . '/' . PHOTO_DIR;
     if (!is_dir($dir)) {
         mkdir($dir, 0775, true);
@@ -48,14 +62,14 @@ function therapist_photo_upload(int $therapistId, string $field = 'photo'): arra
     // Fotku prekódujeme cez GD (zahodí sa tým aj prípadný škodlivý obsah a EXIF/GPS údaje).
     if (function_exists('imagecreatetruecolor')) {
         $src = match ($info[2]) {
-            IMAGETYPE_JPEG => @imagecreatefromjpeg($f['tmp_name']),
-            IMAGETYPE_PNG  => @imagecreatefrompng($f['tmp_name']),
-            IMAGETYPE_WEBP => function_exists('imagecreatefromwebp') ? @imagecreatefromwebp($f['tmp_name']) : false,
+            IMAGETYPE_JPEG => @imagecreatefromjpeg($path),
+            IMAGETYPE_PNG  => @imagecreatefrompng($path),
+            IMAGETYPE_WEBP => function_exists('imagecreatefromwebp') ? @imagecreatefromwebp($path) : false,
         };
         if (!$src) {
             return [null, 'Obrázok sa nepodarilo spracovať.'];
         }
-        $src = photo_fix_orientation($src, $f['tmp_name'], $info[2]);
+        $src = photo_fix_orientation($src, $path, $info[2]);
         $w = imagesx($src);
         $h = imagesy($src);
         $side = min($w, $h);
@@ -74,7 +88,8 @@ function therapist_photo_upload(int $therapistId, string $field = 'photo'): arra
         }
     } else {
         $rel = PHOTO_DIR . '/' . $name . '.' . $allowed[$info[2]];
-        if (!move_uploaded_file($f['tmp_name'], APP_ROOT . '/' . $rel)) {
+        $ok = $uploaded ? move_uploaded_file($path, APP_ROOT . '/' . $rel) : copy($path, APP_ROOT . '/' . $rel);
+        if (!$ok) {
             return [null, 'Fotku sa nepodarilo uložiť.'];
         }
     }
