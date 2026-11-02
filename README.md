@@ -49,11 +49,16 @@ Ak hosting cron nemá, nechajte `pseudo_cron => true`. Kontrola sa potom spustí
 | `min_booking_notice_hours` | 12 | Najskorší čas pred termínom, kedy sa ešte dá rezervovať. |
 | `min_cancel_notice_hours` | 24 | Do kedy môže klient zrušiť termín online. |
 | `booking_horizon_days` | 120 | Na koľko dní dopredu sa zobrazujú voľné termíny. |
-| `contact.*` | adresa a e-mail OZ | Zobrazuje sa v hlavičke, päte a v e-mailoch. |
+| `contact.*` | prevádzka Čajkovského 17, e-mail, telefón | Zobrazuje sa v hlavičke, päte a v e-mailoch. |
 
 ## Dizajn
 
-Farby a písma sú v CSS premenných na začiatku `assets/style.css` (`--primary`, `--accent`, `--font-head`, …). Úpravou týchto premenných a súboru `assets/logo.svg` zladíte vzhľad s webom ozdami.sk.
+Vzhľad je prevzatý z www.ozdami.sk:
+- paleta (#0D6FB0 → #27A2DA, akcenty #D81B81 / #8A5B9E), systémové písmo,
+- plávajúca „pill“ navigácia, gradientové tlačidlá, oblé karty, gradientová päta,
+- logo `assets/logo.png` a favicon `assets/favicon.png`.
+
+Všetky farby sú v CSS premenných na začiatku `assets/style.css`.
 
 ## Bezpečnosť
 

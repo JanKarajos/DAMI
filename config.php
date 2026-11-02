@@ -10,10 +10,13 @@ $config = [
     'timezone'     => 'Europe/Bratislava',
     'db_path'      => __DIR__ . '/data/dami.sqlite',
 
+    'main_site_url' => 'http://www.ozdami.sk/',
+    'registration'  => 'Registrované na Ministerstve vnútra Slovenskej republiky, 12.12. 2008, Číslo spisu: VV3/1 – 900/90 – 33110',
+
     'contact' => [
-        'address' => 'Čajkovského 17, 080 01 Prešov',
+        'address' => 'Čajkovského 17, 080 05 Prešov – Solivar',
         'email'   => 'oz.dami9@gmail.com',
-        'phone'   => '',
+        'phone'   => '0907 216 194',
     ],
 
     // Prvé spustenie vytvorí admin účet s týmito údajmi (heslo je nutné hneď zmeniť).

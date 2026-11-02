@@ -128,17 +128,18 @@ function mail_layout(string $title, string $content): string
     $mail = e(cfg('contact.email'));
     $phone = cfg('contact.phone') ? ' · ' . e(cfg('contact.phone')) : '';
     $t = e($title);
+    $logo = e(abs_url('assets/logo.png'));
     return <<<HTML
 <!doctype html><html lang="sk"><head><meta charset="utf-8"><title>$t</title></head>
-<body style="margin:0;background:#f4f7f6;font-family:Arial,Helvetica,sans-serif;color:#2f3b3a">
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f7f6;padding:24px 0"><tr><td align="center">
-<table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;background:#ffffff;border-radius:12px;overflow:hidden">
-<tr><td style="background:#2a9d8f;padding:20px 28px;color:#ffffff;font-size:20px;font-weight:bold">$site</td></tr>
+<body style="margin:0;background:#f7fbfe;font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif;color:#183247">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f7fbfe;padding:24px 0"><tr><td align="center">
+<table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;background:#ffffff;border-radius:22px;overflow:hidden;box-shadow:0 14px 30px rgba(13,111,176,.08)">
+<tr><td style="background:#eef8fe;padding:18px 28px"><img src="$logo" alt="DAMI" height="40" style="display:block;height:40px;border:0"></td></tr>
 <tr><td style="padding:28px">
-<h1 style="margin:0 0 16px;font-size:22px;color:#264653">$t</h1>
+<h1 style="margin:0 0 16px;font-size:22px;color:#16364d;letter-spacing:-.5px">$t</h1>
 $content
 </td></tr>
-<tr><td style="background:#264653;color:#d8e7e5;padding:16px 28px;font-size:12px">$site · $addr<br>$mail$phone</td></tr>
+<tr><td style="background:#0D6FB0;background-image:linear-gradient(135deg,#0D6FB0,#5e2d85);color:#ffffff;padding:16px 28px;font-size:12px">$site · $addr<br>$mail$phone</td></tr>
 </table></td></tr></table></body></html>
 HTML;
 }

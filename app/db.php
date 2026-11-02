@@ -126,17 +126,21 @@ function migrate(PDO $pdo): void
     $stmt = $pdo->prepare('INSERT INTO admins (username, password_hash, must_change_password) VALUES (?, ?, 1)');
     $stmt->execute([cfg('admin_default_user'), password_hash(cfg('admin_default_pass'), PASSWORD_DEFAULT)]);
 
+    // Služby podľa www.ozdami.sk
     $t = $pdo->prepare('INSERT INTO therapies (name, description, duration_min, sort_order) VALUES (?, ?, ?, ?)');
-    $t->execute([
-        'Aplikovaná behaviorálna analýza (ABA)',
-        'Individuálny program prispôsobený potrebám a možnostiam dieťaťa. Terapiu vedie terapeut pod supervíziou skúseného odborníka s titulom BCBA. Cieľom je zvyšovať potenciál dieťaťa vo všetkých základných oblastiach života.',
-        60, 1,
-    ]);
-    $t->execute([
-        'Neurofeedback (EEG biofeedback)',
-        'Neinvazívna tréningová metóda, pri ktorej sa mozog učí lepšie regulovať svoju činnosť pomocou spätnej väzby z EEG. Vhodná pri poruchách pozornosti, učenia, spánku či zvládaní stresu.',
-        45, 2,
-    ]);
+    $seed = [
+        ['Aplikovaná behaviorálna terapia (ABA)',
+         'Vedecký prístup k učeniu a správaniu. Ciele vyberáme podľa toho, čo konkrétne dieťa potrebuje vo svojom každodennom živote – komunikácia, porozumenie reči, sebaobsluha a samostatnosť, hra a sociálne zručnosti, pozornosť a spolupráca, predškolské a školské zručnosti.', 60],
+        ['INPP terapia neuromotorickej nezrelosti',
+         'Programy vychádzajúce z metodiky INPP – Institute for Neuro-Physiological Psychology. Na začiatku odborné posúdenie, na jeho základe individuálny pohybový program (hrubá a jemná motorika, rovnováha a koordinácia, senzoricko-motorická integrácia, pozornosť a pripravenosť na učenie).', 60],
+        ['Neurofeedback',
+         'Tréning založený na biologickej spätnej väzbe mozgovej aktivity snímanej pomocou EEG. Podporný tréning pozornosti a koncentrácie, sebaregulácie, zvládania záťaže, kvality spánku, učenia a kognitívneho fungovania.', 45],
+        ['Diagnostika ADOS-2',
+         'Autism Diagnostic Observation Schedule – Second Edition: štandardizovaná observačná metodika na odborné posúdenie prejavov súvisiacich s poruchou autistického spektra (PAS). Vhodná pre deti, dospievajúcich aj dospelých.', 90],
+    ];
+    foreach ($seed as $i => [$name, $desc, $dur]) {
+        $t->execute([$name, $desc, $dur, $i + 1]);
+    }
 
     $pdo->exec('PRAGMA user_version = 1');
 }

@@ -5,82 +5,107 @@ $therapies = therapies_all();
 $therapists = therapists_all();
 $byTherapist = therapies_by_therapist();
 
-page_header('Domov');
+page_header('Online rezervácia');
 ?>
-<section class="hero">
-  <span class="bubble" style="width:260px;height:260px;right:-60px;top:-60px"></span>
-  <span class="bubble" style="width:120px;height:120px;right:22%;bottom:40px"></span>
+<section class="hero" id="uvod">
   <div class="container">
-    <h1>Pomáhame deťom rozvíjať ich potenciál</h1>
-    <p>Občianske združenie DAMI v Prešove poskytuje terapie pre deti so zdravotným znevýhodnením a podporu ich rodinám. Termín si teraz môžete zarezervovať jednoducho online.</p>
-    <p style="margin-top:28px">
-      <a class="btn btn-accent" href="<?= e(url('rezervacia.php')) ?>">Rezervovať termín</a>
-      &nbsp;<a class="btn btn-light" href="#terapie">Ponuka terapií</a>
-    </p>
-  </div>
-</section>
-
-<section class="section" id="o-nas">
-  <div class="container grid grid-2" style="align-items:center">
-    <div>
-      <h2>O nás</h2>
-      <p>Sme mimovládna, nezisková a nepolitická organizácia, ktorá vznikla s cieľom pomáhať deťom s ťažkým zdravotným znevýhodnením a ich rodinám.</p>
-      <p>Pracujeme metódami <strong>aplikovanej behaviorálnej analýzy (ABA)</strong> a <strong>neurofeedbacku (EEG biofeedback)</strong>. Naším cieľom je zvyšovať potenciál dieťaťa vo všetkých základných oblastiach života.</p>
-    </div>
-    <div class="card" style="border-left:5px solid var(--warm)">
-      <h3>Ako prebieha rezervácia?</h3>
-      <ol style="padding-left:20px;margin:0">
-        <li>Vyberiete si terapiu.</li>
-        <li>Zvolíte terapeuta, ktorý ju vykonáva.</li>
-        <li>V kalendári vyberiete voľný deň a čas.</li>
-        <li>Vyplníte kontaktné údaje – potvrdenie príde e-mailom.</li>
-        <li>Deň pred termínom vám pošleme pripomienku.</li>
-      </ol>
+    <div class="kicker with-bars">Centrum pre deti so špeciálnymi potrebami</div>
+    <h1>Termín na terapiu <span class="text-blue">jednoducho online.</span></h1>
+    <p class="lead">Vyberte si službu, terapeuta a voľný čas v kalendári. Potvrdenie dostanete e-mailom a pred termínom vám pošleme pripomienku.</p>
+    <div class="hero-actions">
+      <a class="btn" href="<?= e(url('rezervacia.php')) ?>">Rezervovať termín <span>↘</span></a>
+      <a class="text-link" href="#sluzby">Pozrieť služby ↓</a>
     </div>
   </div>
 </section>
 
-<section class="section section-soft" id="terapie">
+<section class="section" id="ako">
   <div class="container">
-    <div class="section-title">
-      <h2>Naše terapie</h2>
+    <div class="section-head">
+      <div class="kicker">Ako to funguje</div>
+      <h2>Rezervácia v štyroch krokoch.</h2>
+    </div>
+    <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr))">
+      <?php foreach ([
+          ['01', 'Služba', 'Vyberiete si terapiu alebo diagnostiku.'],
+          ['02', 'Terapeut', 'Zvolíte odborníka, ktorý ju u nás vykonáva.'],
+          ['03', 'Termín', 'V kalendári vidíte iba skutočne voľné časy.'],
+          ['04', 'Potvrdenie', 'E-mail s potvrdením a pripomienka deň vopred.'],
+      ] as [$n, $t, $d]): ?>
+        <div class="card">
+          <div class="kicker" style="margin-bottom:8px"><?= $n ?></div>
+          <h3><?= e($t) ?></h3>
+          <p class="muted" style="margin:0"><?= e($d) ?></p>
+        </div>
+      <?php endforeach; ?>
+    </div>
+  </div>
+</section>
+
+<section class="section section-white" id="sluzby">
+  <div class="container">
+    <div class="section-head">
+      <div class="kicker">Služby</div>
+      <h2>Vyberte si oblasť, o ktorú máte záujem.</h2>
       <p>Programy sú individuálne a prispôsobené potrebám a možnostiam každého dieťaťa.</p>
     </div>
-    <div class="grid grid-3">
+    <div class="grid grid-2">
       <?php foreach ($therapies as $t): ?>
-        <article class="card therapy-card">
+        <article class="therapy-card">
+          <div class="meta"><?= (int) $t['duration_min'] ?> min<?= $t['price'] !== '' ? ' · ' . e($t['price']) : '' ?></div>
           <h3><?= e($t['name']) ?></h3>
-          <div class="meta">⏱ <?= (int) $t['duration_min'] ?> min<?= $t['price'] !== '' ? ' · ' . e($t['price']) : '' ?></div>
           <p><?= nl2br(e($t['description'])) ?></p>
-          <a class="btn btn-outline btn-sm" href="<?= e(url('rezervacia.php?terapia=' . $t['id'])) ?>">Rezervovať</a>
+          <a class="btn btn-light btn-sm" href="<?= e(url('rezervacia.php?terapia=' . $t['id'])) ?>">Rezervovať <span>↘</span></a>
         </article>
       <?php endforeach; ?>
-      <?php if (!$therapies): ?><p class="center muted">Ponuka terapií sa pripravuje.</p><?php endif; ?>
+      <?php if (!$therapies): ?><p class="muted">Ponuka služieb sa pripravuje.</p><?php endif; ?>
+    </div>
+    <div class="chips" style="margin-top:46px">
+      <?php foreach (['spolupráca', 'hra', 'dôvera', 'pokrok', 'komunikácia', 'samostatnosť'] as $c): ?><span class="chip"><?= $c ?></span><?php endforeach; ?>
     </div>
   </div>
 </section>
 
-<section class="section" id="tim">
+<section class="section section-soft" id="personal">
   <div class="container">
-    <div class="section-title">
-      <h2>Náš tím</h2>
-      <p>Odborníci, ktorí s vašimi deťmi pracujú.</p>
+    <div class="section-head">
+      <div class="kicker">Personál</div>
+      <h2>Ľudia, ktorí vytvárajú bezpečný priestor.</h2>
+    </div>
+    <div class="panel">
+      <div class="grid grid-3">
+        <?php foreach ($therapists as $p): ?>
+          <article class="person-card">
+            <div class="person-photo"><?= e(mb_substr($p['first_name'], 0, 1) . mb_substr($p['last_name'], 0, 1)) ?></div>
+            <?php if ($p['position']): ?><div class="position"><?= e($p['position']) ?></div><?php endif; ?>
+            <h3><?= e(therapist_full_name($p)) ?></h3>
+            <?php if ($p['description']): ?><p class="small"><?= nl2br(e($p['description'])) ?></p><?php endif; ?>
+            <div class="tags">
+              <?php foreach ($byTherapist[(int) $p['id']] ?? [] as $th): ?>
+                <span class="tag"><?= e($th['name']) ?></span>
+              <?php endforeach; ?>
+            </div>
+          </article>
+        <?php endforeach; ?>
+        <?php if (!$therapists): ?><p class="muted">Informácie o tíme pripravujeme.</p><?php endif; ?>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="kontakty">
+  <div class="container">
+    <div class="section-head">
+      <div class="kicker">Kontakty</div>
+      <h2>U nás sú dvere vždy otvorené.</h2>
+      <p>Máte otázky k terapiám, diagnostike alebo k rezervácii? Neváhajte nás kontaktovať e-mailom alebo telefonicky.</p>
     </div>
     <div class="grid grid-3">
-      <?php foreach ($therapists as $p): ?>
-        <article class="card person-card">
-          <div class="avatar"><?= e(mb_substr($p['first_name'], 0, 1) . mb_substr($p['last_name'], 0, 1)) ?></div>
-          <h3><?= e(therapist_full_name($p)) ?></h3>
-          <?php if ($p['position']): ?><div class="position"><?= e($p['position']) ?></div><?php endif; ?>
-          <p class="small"><?= nl2br(e($p['description'])) ?></p>
-          <div class="tags">
-            <?php foreach ($byTherapist[(int) $p['id']] ?? [] as $th): ?>
-              <span class="tag"><?= e($th['name']) ?></span>
-            <?php endforeach; ?>
-          </div>
-        </article>
-      <?php endforeach; ?>
-      <?php if (!$therapists): ?><p class="center muted">Informácie o tíme pripravujeme.</p><?php endif; ?>
+      <div class="contact-card"><div class="label">Prevádzka</div><?= e(cfg('contact.address')) ?></div>
+      <div class="contact-card"><div class="label">E-mail</div><a href="mailto:<?= e(cfg('contact.email')) ?>"><?= e(cfg('contact.email')) ?></a></div>
+      <?php if (cfg('contact.phone')): ?>
+        <div class="contact-card"><div class="label">Telefón</div><a href="tel:<?= e(preg_replace('/\s+/', '', (string) cfg('contact.phone'))) ?>"><?= e(cfg('contact.phone')) ?></a></div>
+      <?php endif; ?>
     </div>
   </div>
 </section>

@@ -211,8 +211,8 @@ function booking_details_html(array $b): string
         if ($v === '' || $v === null) {
             continue;
         }
-        $html .= '<tr><td style="border-bottom:1px solid #e3ecea;color:#6b7b79;width:120px">' . e($k)
-            . '</td><td style="border-bottom:1px solid #e3ecea"><strong>' . nl2br(e($v)) . '</strong></td></tr>';
+        $html .= '<tr><td style="border-bottom:1px solid #e5f0f7;color:#5f7283;width:120px">' . e($k)
+            . '</td><td style="border-bottom:1px solid #e5f0f7"><strong>' . nl2br(e($v)) . '</strong></td></tr>';
     }
     return $html . '</table>';
 }
@@ -229,7 +229,7 @@ function google_calendar_link(array $b): string
     ]);
 }
 
-function mail_button(string $href, string $label, string $color = '#2a9d8f'): string
+function mail_button(string $href, string $label, string $color = '#0D6FB0'): string
 {
     return '<a href="' . e($href) . '" style="display:inline-block;background:' . $color
         . ';color:#ffffff;text-decoration:none;padding:10px 18px;border-radius:24px;font-weight:bold;margin:4px 6px 4px 0">'
@@ -246,7 +246,7 @@ function mail_booking_created(array $b): void
         . booking_details_html($b) . '
         <p>' . (int) cfg('reminder_hours') . ' hodín pred termínom vám pošleme pripomienku.</p>
         <p>' . mail_button(google_calendar_link($b), 'Pridať do kalendára')
-        . mail_button($manage, 'Zobraziť / zrušiť rezerváciu', '#e76f51') . '</p>
+        . mail_button($manage, 'Zobraziť / zrušiť rezerváciu', '#D81B81') . '</p>
         <p style="font-size:13px;color:#6b7b79">Termín môžete bezplatne zrušiť najneskôr ' . $cancelInfo
         . ' hodín vopred. V prípade otázok kontaktujte terapeuta: ' . e($b['therapist_email'])
         . ($b['therapist_phone'] ? ', ' . e($b['therapist_phone']) : '') . '.</p>
