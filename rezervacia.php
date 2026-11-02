@@ -13,6 +13,7 @@ foreach ($therapies as $t) {
             'initials' => mb_substr($p['first_name'], 0, 1) . mb_substr($p['last_name'], 0, 1),
             'position' => $p['position'],
             'description' => $p['description'],
+            'photo' => therapist_photo_url($p),
         ];
     }
     $data['therapies'][] = [

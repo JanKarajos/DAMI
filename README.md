@@ -5,7 +5,7 @@ Rezervačný systém pre Občianske združenie DAMI (Prešov). Má tri časti:
 | Časť | Adresa | Na čo slúži |
 |---|---|---|
 | **Verejný web** | `/index.php`, `/rezervacia.php` | Prehľad terapií a tímu. Rezervácia v 4 krokoch: terapia → terapeut → kalendár s voľnými časmi → kontaktné údaje. |
-| **Portál terapeuta** | `/terapeut/` | Prihlásenie údajmi od admina. Vypisovanie termínov (jednotlivo aj hromadne), prehľad a rušenie rezervácií, zmena hesla. |
+| **Portál terapeuta** | `/terapeut/` | Prihlásenie údajmi od admina. Vypisovanie termínov (jednotlivo aj hromadne), prehľad a rušenie rezervácií, úprava telefónu, popisu a fotky, zmena hesla. |
 | **Administrácia** | `/admin/` | Správa terapeutov a terapií, priradenie terapeut × terapia, heslá terapeutov, prehľad všetkých rezervácií. |
 
 ## Požiadavky
@@ -16,7 +16,7 @@ Rezervačný systém pre Občianske združenie DAMI (Prešov). Má tri časti:
 ## Inštalácia
 
 1. Nahrajte súbory na hosting (napr. do subdomény `rezervacie.ozdami.sk`).
-2. Priečinok `data/` musí byť zapisovateľný pre PHP. Priečinky `data/`, `app/` a `cron/` sú chránené cez `.htaccess`. Ak hosting nepoužíva Apache, zablokujte prístup k nim v konfigurácii servera.
+2. Priečinky `data/` a `uploads/therapists/` musia byť zapisovateľné pre PHP. Priečinky `data/`, `app/` a `cron/` sú chránené cez `.htaccess` a v `uploads/` sa nespúšťajú skripty. Ak hosting nepoužíva Apache, nastavte to isté v konfigurácii servera.
 3. Skopírujte `config.local.example.php` ako `config.local.php`. Nastavte `base_url` a odosielanie e-mailov (SMTP).
 4. Otvorte `/admin/` a prihláste sa ako **admin / admin123**. Systém vás hneď vyzve zmeniť heslo aj meno.
 5. V administrácii vytvorte terapeutov a priraďte im terapie. Prihlasovacie údaje sa terapeutovi zobrazia a voliteľne odošlú e-mailom.
@@ -24,8 +24,14 @@ Rezervačný systém pre Občianske združenie DAMI (Prešov). Má tri časti:
 Lokálne spustenie:
 
 ```bash
-php -S localhost:8000
+php -d upload_max_filesize=10M -d post_max_size=12M -S localhost:8000
 ```
+
+## Fotky terapeutov
+
+- Fotku nahráva terapeut v portáli (Profil) alebo admin pri úprave terapeuta. Povolené sú formáty JPG, PNG a WEBP do 8 MB.
+- Fotka sa oreže na štvorec 600×600 px a prekóduje do JPG. Pri prekódovaní sa odstránia aj EXIF a GPS údaje. Potrebné je rozšírenie PHP `gd`.
+- Súbory sa ukladajú do `uploads/therapists/`. Limit veľkosti nahrávania zvyšuje súbor `.user.ini`.
 
 ## E-maily a pripomienky
 

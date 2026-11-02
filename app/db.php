@@ -26,9 +26,18 @@ function db(): PDO
 function migrate(PDO $pdo): void
 {
     $version = (int) $pdo->query('PRAGMA user_version')->fetchColumn();
-    if ($version >= 1) {
-        return;
+    if ($version < 1) {
+        migrate_v1($pdo);
     }
+    if ($version < 2) {
+        // v2: fotka terapeuta (relatívna cesta k súboru v uploads/)
+        $pdo->exec("ALTER TABLE therapists ADD COLUMN photo TEXT NOT NULL DEFAULT ''");
+        $pdo->exec('PRAGMA user_version = 2');
+    }
+}
+
+function migrate_v1(PDO $pdo): void
+{
 
     $pdo->exec(<<<SQL
     CREATE TABLE IF NOT EXISTS admins (

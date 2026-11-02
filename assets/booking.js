@@ -34,7 +34,7 @@
       <button type="button" class="choice" data-id="${t.id}">
         <strong>${esc(t.name)}</strong>
         <span class="small muted">⏱ ${t.duration} min${t.price ? ' · ' + esc(t.price) : ''} · ${t.therapists.length} ${t.therapists.length === 1 ? 'terapeut' : (t.therapists.length >= 2 && t.therapists.length <= 4 ? 'terapeuti' : 'terapeutov')}</span>
-        <span class="small">${esc(t.description).slice(0, 180)}${t.description.length > 180 ? '…' : ''}</span>
+        <span class="small">${esc(t.description.slice(0, 180))}${t.description.length > 180 ? '…' : ''}</span>
       </button>`).join('');
     $$('.choice', list).forEach((el) => el.addEventListener('click', () => selectTherapy(+el.dataset.id)));
   }
@@ -47,10 +47,10 @@
     $('#therapist-intro').textContent = 'Terapiu „' + state.therapy.name + '“ vykonávajú:';
     list.innerHTML = people.length ? people.map((p) => `
       <button type="button" class="choice choice-person" data-id="${p.id}">
-        <span class="avatar">${esc(p.initials)}</span>
+        ${p.photo ? `<span class="avatar has-photo"><img src="${esc(p.photo)}" alt=""></span>` : `<span class="avatar">${esc(p.initials)}</span>`}
         <span><strong>${esc(p.name)}</strong><br>
         <span class="small muted">${esc(p.position)}</span><br>
-        <span class="small">${esc(p.description).slice(0, 140)}${p.description.length > 140 ? '…' : ''}</span></span>
+        <span class="small">${esc(p.description.slice(0, 160))}${p.description.length > 160 ? '…' : ''}</span></span>
       </button>`).join('') : '<p class="muted">Pre túto terapiu zatiaľ nie je priradený žiadny terapeut. Kontaktujte nás prosím e-mailom.</p>';
     $$('.choice', list).forEach((el) => el.addEventListener('click', () => selectTherapist(+el.dataset.id)));
     go(2);

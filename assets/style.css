@@ -172,7 +172,7 @@ input[type=checkbox] { accent-color: var(--blue); }
 .alert-success { background: #e6f6ee; border-color: #b5e2c9; color: #1b6b43; }
 .alert-error { background: #fdebf3; border-color: #f4bcd6; color: #9c1259; }
 .alert-info { background: var(--blue-softer); border-color: #bfe3f5; color: var(--blue-dark); }
-.flashes { margin-top: 8px; }
+.flashes { margin-top: 8px; position: relative; z-index: 5; }
 
 /* ---------- Tabuľky ---------- */
 .table-wrap { overflow-x: auto; border-radius: 20px; border: 1px solid var(--border); background: #fff; box-shadow: var(--shadow); }
@@ -277,3 +277,14 @@ details.card summary { cursor: pointer; font-weight: 750; color: var(--heading);
   html { scroll-behavior: auto; }
   * { transition: none !important; }
 }
+
+/* ---------- Fotky terapeutov ---------- */
+.person-photo.has-photo { background: var(--blue-soft); overflow: hidden; padding: 0; }
+.person-photo img, .avatar img, .photo-preview img, .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.choice .avatar.has-photo { overflow: hidden; background: var(--blue-soft); }
+.photo-edit { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 18px; align-items: center; margin-bottom: 18px; }
+.photo-preview { width: 120px; height: 120px; border-radius: 22px; overflow: hidden; background: var(--grad-blue); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: 800; box-shadow: var(--shadow); }
+input[type=file] { font: inherit; font-size: .9rem; max-width: 100%; }
+input[type=file]::file-selector-button { font: inherit; font-weight: 700; border: 0; border-radius: 99px; padding: 8px 14px; margin-right: 10px; background: var(--blue-soft); color: var(--blue-dark); cursor: pointer; }
+.thumb { width: 40px; height: 40px; border-radius: 12px; overflow: hidden; background: var(--grad-blue); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-weight: 800; font-size: .8rem; vertical-align: middle; margin-right: 10px; flex: none; }
+@media (max-width: 480px) { .photo-edit { grid-template-columns: 1fr; } }

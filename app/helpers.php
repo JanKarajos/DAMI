@@ -60,6 +60,10 @@ function csrf_field(): string
 
 function csrf_check(): void
 {
+    if (empty($_POST) && (int) ($_SERVER['CONTENT_LENGTH'] ?? 0) > 0) {
+        http_response_code(413);
+        exit('Odoslané dáta sú príliš veľké (pravdepodobne fotka). Vráťte sa späť a vyberte menší súbor.');
+    }
     $sent = $_POST['_csrf'] ?? ($_SERVER['HTTP_X_CSRF_TOKEN'] ?? '');
     if (!is_string($sent) || !hash_equals(csrf_token(), $sent)) {
         http_response_code(419);
