@@ -42,6 +42,39 @@ function migrate(PDO $pdo): void
         seed_team($pdo);
         $pdo->exec('PRAGMA user_version = 3');
     }
+    if ($version < 4) {
+        migrate_v4($pdo);
+    }
+}
+
+/**
+ * v4: typ služby (terapia / diagnostika), spôsob objednania (online kalendár / kontaktný formulár)
+ * a tabuľka dopytov z kontaktného formulára.
+ */
+function migrate_v4(PDO $pdo): void
+{
+    $pdo->exec("ALTER TABLE therapies ADD COLUMN kind TEXT NOT NULL DEFAULT 'therapy'");          // therapy | diagnostic
+    $pdo->exec("ALTER TABLE therapies ADD COLUMN booking_mode TEXT NOT NULL DEFAULT 'online'");   // online | inquiry
+    $pdo->exec(<<<SQL
+    CREATE TABLE IF NOT EXISTS inquiries (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        therapy_id INTEGER NULL REFERENCES therapies(id) ON DELETE SET NULL,
+        therapy_name TEXT NOT NULL DEFAULT '',
+        client_name TEXT NOT NULL,
+        client_email TEXT NOT NULL,
+        client_phone TEXT NOT NULL DEFAULT '',
+        child_name TEXT NOT NULL DEFAULT '',
+        child_age TEXT NOT NULL DEFAULT '',
+        message TEXT NOT NULL DEFAULT '',
+        status TEXT NOT NULL DEFAULT 'new',   -- new | done
+        created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_inquiries_created ON inquiries(created_at);
+    SQL);
+    // INPP – iba kontaktný formulár, ADOS-2 – diagnostika
+    $pdo->exec("UPDATE therapies SET booking_mode = 'inquiry' WHERE name LIKE 'INPP%'");
+    $pdo->exec("UPDATE therapies SET kind = 'diagnostic' WHERE name LIKE '%ADOS%'");
+    $pdo->exec('PRAGMA user_version = 4');
 }
 
 /** Pridá tím OZ DAMI (len tých, ktorí ešte v databáze nie sú). */

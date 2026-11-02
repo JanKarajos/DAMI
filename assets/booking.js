@@ -27,24 +27,43 @@
   $$('[data-back]').forEach((b) => b.addEventListener('click', () => go(+b.dataset.back)));
 
   /* ---------- Krok 1: terapie ---------- */
+  const plural = (n) => n + ' ' + (n === 1 ? 'terapeut' : (n >= 2 && n <= 4 ? 'terapeuti' : 'terapeutov'));
+  function therapyChoice(t) {
+    const desc = `<span class="small">${esc(t.description.slice(0, 180))}${t.description.length > 180 ? '…' : ''}</span>`;
+    if (t.inquiryUrl) {
+      return `<a class="choice choice-inquiry" href="${esc(t.inquiryUrl)}">
+        <strong>${esc(t.name)}</strong>
+        <span class="small muted">✉ Iba cez kontaktný formulár</span>
+        ${desc}
+        <span class="choice-cta">Poslať dopyt →</span>
+      </a>`;
+    }
+    return `<button type="button" class="choice" data-id="${t.id}">
+        <strong>${esc(t.name)}</strong>
+        <span class="small muted">⏱ ${t.duration} min${t.price ? ' · ' + esc(t.price) : ''} · ${plural(t.therapists.length)}</span>
+        ${desc}
+      </button>`;
+  }
+
   function renderTherapies() {
     const list = $('#therapy-list');
-    if (!B.therapies.length) { list.innerHTML = '<p class="muted">Momentálne nie sú dostupné žiadne terapie.</p>'; return; }
-    list.innerHTML = B.therapies.map((t) => `
-      <button type="button" class="choice" data-id="${t.id}">
-        <strong>${esc(t.name)}</strong>
-        <span class="small muted">⏱ ${t.duration} min${t.price ? ' · ' + esc(t.price) : ''} · ${t.therapists.length} ${t.therapists.length === 1 ? 'terapeut' : (t.therapists.length >= 2 && t.therapists.length <= 4 ? 'terapeuti' : 'terapeutov')}</span>
-        <span class="small">${esc(t.description.slice(0, 180))}${t.description.length > 180 ? '…' : ''}</span>
-      </button>`).join('');
-    $$('.choice', list).forEach((el) => el.addEventListener('click', () => selectTherapy(+el.dataset.id)));
+    if (!B.therapies.length) { list.innerHTML = '<p class="muted">Momentálne nie sú dostupné žiadne služby.</p>'; return; }
+    const groups = [['therapy', 'Terapie'], ['diagnostic', 'Diagnostika']];
+    list.innerHTML = groups.map(([kind, label]) => {
+      const items = B.therapies.filter((t) => t.kind === kind);
+      return items.length ? `<h3 class="choice-group">${label}</h3><div class="choice-grid">${items.map(therapyChoice).join('')}</div>` : '';
+    }).join('');
+    $$('button.choice', list).forEach((el) => el.addEventListener('click', () => selectTherapy(+el.dataset.id)));
   }
 
   function selectTherapy(id) {
-    state.therapy = B.therapies.find((t) => t.id === id);
-    if (!state.therapy) return;
+    const t = B.therapies.find((x) => x.id === id);
+    if (!t) return;
+    if (t.inquiryUrl) { window.location.href = t.inquiryUrl; return; }
+    state.therapy = t;
     const list = $('#therapist-list');
     const people = state.therapy.therapists.map((tid) => B.therapists[tid]);
-    $('#therapist-intro').textContent = 'Terapiu „' + state.therapy.name + '“ vykonávajú:';
+    $('#therapist-intro').textContent = (state.therapy.kind === 'diagnostic' ? 'Diagnostiku' : 'Terapiu') + ' „' + state.therapy.name + '“ vykonávajú:';
     list.innerHTML = people.length ? people.map((p) => `
       <button type="button" class="choice choice-person" data-id="${p.id}">
         ${p.photo ? `<span class="avatar has-photo"><img src="${esc(p.photo)}" alt=""></span>` : `<span class="avatar">${esc(p.initials)}</span>`}

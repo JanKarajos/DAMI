@@ -18,10 +18,12 @@ if (is_post()) {
             'price'        => mb_substr(post('price'), 0, 60),
             'active'       => post('active') === '1' ? 1 : 0,
             'sort_order'   => (int) post('sort_order'),
+            'kind'         => isset(THERAPY_KINDS[post('kind')]) ? post('kind') : 'therapy',
+            'booking_mode' => isset(BOOKING_MODES[post('booking_mode')]) ? post('booking_mode') : 'online',
         ];
         if ($d['name'] === '') {
             $_SESSION['form_old'] = $_POST;
-            flash('error', 'Názov terapie je povinný.');
+            flash('error', 'Názov služby je povinný.');
             redirect('admin/terapie.php?' . ($id ? 'upravit=' . $id : 'nova=1'));
         }
         $selected = array_values(array_intersect(array_map('intval', (array) ($_POST['therapists'] ?? [])), $therapistIds));
@@ -41,13 +43,13 @@ if (is_post()) {
             $ins->execute([$tid, $id]);
         }
         $pdo->commit();
-        flash('success', 'Terapia bola uložená.');
+        flash('success', 'Služba bola uložená.');
         redirect('admin/terapie.php');
     }
 
     if ($action === 'toggle' && $id) {
         db()->prepare('UPDATE therapies SET active = 1 - active WHERE id = ?')->execute([$id]);
-        flash('success', 'Stav terapie bol zmenený.');
+        flash('success', 'Stav služby bol zmenený.');
         redirect('admin/terapie.php');
     }
 
@@ -55,10 +57,10 @@ if (is_post()) {
         $s = db()->prepare("SELECT COUNT(*) FROM bookings WHERE therapy_id = ? AND status = 'confirmed' AND starts_at >= ?");
         $s->execute([$id, date('Y-m-d H:i')]);
         if ((int) $s->fetchColumn() > 0) {
-            flash('error', 'Na túto terapiu existujú nadchádzajúce rezervácie. Terapiu môžete deaktivovať.');
+            flash('error', 'Na túto službu existujú nadchádzajúce rezervácie. Službu môžete deaktivovať.');
         } else {
             db()->prepare('DELETE FROM therapies WHERE id = ?')->execute([$id]);
-            flash('success', 'Terapia bola zmazaná.');
+            flash('success', 'Služba bola zmazaná.');
         }
         redirect('admin/terapie.php');
     }
@@ -70,13 +72,13 @@ $editing = $editId ? therapy_find($editId) : null;
 $old = $_SESSION['form_old'] ?? null;
 unset($_SESSION['form_old']);
 
-page_header('Terapie', 'admin', 'admin/terapie.php');
+page_header('Terapie a diagnostika', 'admin', 'admin/terapie.php');
 ?>
-<section class="page-hero"><div class="container"><h1>Terapie</h1></div></section>
+<section class="page-hero"><div class="container"><h1>Terapie a diagnostika</h1></div></section>
 <section class="section" style="padding-top:32px">
 <div class="container">
 <?php if ($editing || $isNew):
-    $v = $old ?? ($editing ?: ['name' => '', 'description' => '', 'duration_min' => 60, 'price' => '', 'active' => 1, 'sort_order' => 0]);
+    $v = $old ?? ($editing ?: ['name' => '', 'description' => '', 'duration_min' => 60, 'price' => '', 'active' => 1, 'sort_order' => 0, 'kind' => $_GET['typ'] ?? 'therapy', 'booking_mode' => 'online']);
     $assigned = [];
     if ($old) {
         $assigned = array_map('intval', (array) ($old['therapists'] ?? []));
@@ -91,16 +93,24 @@ page_header('Terapie', 'admin', 'admin/terapie.php');
     <?= csrf_field() ?>
     <input type="hidden" name="action" value="save">
     <input type="hidden" name="id" value="<?= (int) ($editing['id'] ?? 0) ?>">
-    <h2><?= $editing ? 'Upraviť terapiu' : 'Nová terapia' ?></h2>
+    <h2><?= $editing ? 'Upraviť službu' : 'Nová služba' ?></h2>
     <div class="form-row"><label class="required">Názov</label><input type="text" name="name" required value="<?= e($v['name']) ?>"></div>
+    <div class="form-grid">
+      <div class="form-row"><label>Typ</label>
+        <select name="kind"><?php foreach (THERAPY_KINDS as $k => $l): ?><option value="<?= $k ?>" <?= ($v['kind'] ?? 'therapy') === $k ? 'selected' : '' ?>><?= e($l) ?></option><?php endforeach; ?></select>
+        <div class="help">Diagnostika sa na webe zobrazuje v samostatnej sekcii.</div></div>
+      <div class="form-row"><label>Spôsob objednania</label>
+        <select name="booking_mode"><?php foreach (BOOKING_MODES as $k => $l): ?><option value="<?= $k ?>" <?= ($v['booking_mode'] ?? 'online') === $k ? 'selected' : '' ?>><?= e($l) ?></option><?php endforeach; ?></select>
+        <div class="help">Pri „kontaktnom formulári“ klient neuvidí kalendár, ale pošle dopyt (príde do sekcie Dopyty a e-mailom).</div></div>
+    </div>
     <div class="form-row"><label>Popis</label><textarea name="description"><?= e($v['description']) ?></textarea></div>
     <div class="form-grid">
       <div class="form-row"><label>Predvolená dĺžka (min)</label><input type="number" name="duration_min" min="10" max="480" value="<?= (int) $v['duration_min'] ?>"><div class="help">Použije sa ako predvolená dĺžka pri vypisovaní termínov.</div></div>
       <div class="form-row"><label>Cena (voliteľné)</label><input type="text" name="price" value="<?= e($v['price']) ?>" placeholder="napr. 30 €"></div>
       <div class="form-row"><label>Poradie</label><input type="number" name="sort_order" value="<?= (int) $v['sort_order'] ?>"></div>
     </div>
-    <div class="form-row"><label class="check"><input type="checkbox" name="active" value="1" <?= !empty($v['active']) ? 'checked' : '' ?>> Aktívna (zobrazuje sa a dá sa rezervovať)</label></div>
-    <div class="form-row"><label>Terapeuti, ktorí terapiu vykonávajú</label>
+    <div class="form-row"><label class="check"><input type="checkbox" name="active" value="1" <?= !empty($v['active']) ? 'checked' : '' ?>> Aktívna (zobrazuje sa na webe)</label></div>
+    <div class="form-row"><label>Terapeuti, ktorí službu vykonávajú</label>
       <div class="checks">
         <?php foreach ($therapists as $t): ?>
           <label class="check"><input type="checkbox" name="therapists[]" value="<?= (int) $t['id'] ?>" <?= in_array((int) $t['id'], $assigned, true) ? 'checked' : '' ?>>
@@ -109,12 +119,12 @@ page_header('Terapie', 'admin', 'admin/terapie.php');
         <?php if (!$therapists): ?><span class="muted">Zatiaľ žiadni terapeuti.</span><?php endif; ?>
       </div>
     </div>
-    <button class="btn"><?= $editing ? 'Uložiť zmeny' : 'Vytvoriť terapiu' ?></button>
+    <button class="btn"><?= $editing ? 'Uložiť zmeny' : 'Vytvoriť službu' ?></button>
   </form>
   <?php if ($editing): ?>
-    <form method="post" style="margin-top:16px" onsubmit="return confirm('Naozaj zmazať terapiu?')">
+    <form method="post" style="margin-top:16px" onsubmit="return confirm('Naozaj zmazať službu?')">
       <?= csrf_field() ?><input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="<?= (int) $editing['id'] ?>">
-      <button class="btn btn-danger btn-sm">Zmazať terapiu</button>
+      <button class="btn btn-danger btn-sm">Zmazať službu</button>
     </form>
   <?php endif; ?>
 
@@ -125,14 +135,16 @@ page_header('Terapie', 'admin', 'admin/terapie.php');
         $counts[(int) $r['therapy_id']][] = therapist_full_name($r);
     }
 ?>
-  <p><a class="btn btn-accent" href="?nova=1">+ Nová terapia</a></p>
+  <p><a class="btn btn-accent" href="?nova=1">+ Nová terapia</a> <a class="btn btn-outline" href="?nova=1&amp;typ=diagnostic">+ Nová diagnostika</a></p>
   <div class="table-wrap">
     <table class="table">
-      <thead><tr><th>Názov</th><th>Dĺžka</th><th>Cena</th><th>Terapeuti</th><th>Stav</th><th></th></tr></thead>
+      <thead><tr><th>Názov</th><th>Typ</th><th>Objednanie</th><th>Dĺžka</th><th>Cena</th><th>Terapeuti</th><th>Stav</th><th></th></tr></thead>
       <tbody>
       <?php foreach ($list as $t): ?>
         <tr>
           <td><strong><?= e($t['name']) ?></strong><div class="small muted"><?= e(mb_strimwidth($t['description'], 0, 120, '…')) ?></div></td>
+          <td><?= e(THERAPY_KINDS[$t['kind']] ?? $t['kind']) ?></td>
+          <td class="small"><?= therapy_is_online($t) ? 'online kalendár' : '<strong>kontaktný formulár</strong>' ?></td>
           <td><?= (int) $t['duration_min'] ?> min</td>
           <td><?= e($t['price']) ?></td>
           <td class="small"><?= e(implode(', ', $counts[(int) $t['id']] ?? [])) ?: '<span class="muted">nikto</span>' ?></td>
@@ -144,7 +156,7 @@ page_header('Terapie', 'admin', 'admin/terapie.php');
           </td>
         </tr>
       <?php endforeach; ?>
-      <?php if (!$list): ?><tr><td colspan="6" class="center muted">Zatiaľ žiadne terapie.</td></tr><?php endif; ?>
+      <?php if (!$list): ?><tr><td colspan="8" class="center muted">Zatiaľ žiadne služby.</td></tr><?php endif; ?>
       </tbody>
     </table>
   </div>
