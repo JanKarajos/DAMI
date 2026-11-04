@@ -23,7 +23,7 @@ if (PHP_SAPI !== 'cli') {
         'path'     => '/',
         'httponly' => true,
         'samesite' => 'Lax',
-        'secure'   => !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off',
+        'secure'   => request_is_https(),
     ]);
     session_start();
     header('X-Frame-Options: SAMEORIGIN');

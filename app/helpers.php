@@ -128,7 +128,65 @@ function random_password(int $len = 10): string
     return $out;
 }
 
+/** IP adresa návštevníka. Za reverzným proxy (Synology, Docker) sa berie z X-Forwarded-For. */
 function client_ip(): string
 {
-    return $_SERVER['REMOTE_ADDR'] ?? 'cli';
+    $ip = $_SERVER['REMOTE_ADDR'] ?? 'cli';
+    if (!ip_is_trusted_proxy($ip) || empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+        return $ip;
+    }
+    // Sprava doľava: prvá adresa, ktorá nie je naše proxy, je skutočný klient.
+    $chain = array_reverse(array_map('trim', explode(',', (string) $_SERVER['HTTP_X_FORWARDED_FOR'])));
+    foreach ($chain as $hop) {
+        if (!filter_var($hop, FILTER_VALIDATE_IP)) {
+            break;
+        }
+        if (!ip_is_trusted_proxy($hop)) {
+            return $hop;
+        }
+        $ip = $hop;
+    }
+    return $ip;
+}
+
+/** Je požiadavka cez HTTPS (priamo alebo cez dôveryhodné proxy)? */
+function request_is_https(): bool
+{
+    if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') {
+        return true;
+    }
+    return ip_is_trusted_proxy($_SERVER['REMOTE_ADDR'] ?? '')
+        && strtolower((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')) === 'https';
+}
+
+function ip_is_trusted_proxy(string $ip): bool
+{
+    foreach ((array) cfg('trusted_proxies', []) as $range) {
+        if (ip_in_range($ip, (string) $range)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/** '10.0.0.5' v '10.0.0.0/8' alebo presná zhoda. Funguje pre IPv4 aj IPv6. */
+function ip_in_range(string $ip, string $range): bool
+{
+    [$net, $bits] = array_pad(explode('/', $range, 2), 2, null);
+    $ipBin = @inet_pton($ip);
+    $netBin = @inet_pton($net);
+    if ($ipBin === false || $netBin === false || strlen($ipBin) !== strlen($netBin)) {
+        return false;
+    }
+    $bits = $bits === null ? strlen($ipBin) * 8 : (int) $bits;
+    $bytes = intdiv($bits, 8);
+    if (substr($ipBin, 0, $bytes) !== substr($netBin, 0, $bytes)) {
+        return false;
+    }
+    $rest = $bits % 8;
+    if ($rest === 0) {
+        return true;
+    }
+    $mask = (0xFF << (8 - $rest)) & 0xFF;
+    return (ord($ipBin[$bytes]) & $mask) === (ord($netBin[$bytes]) & $mask);
 }
