@@ -3,6 +3,12 @@ require dirname(__DIR__) . '/app/bootstrap.php';
 $admin = require_admin(true);   // dostupné aj pred zmenou hesla (napr. keď sa do databázy nedá zapisovať)
 
 $testResult = null;
+if (is_post() && post('action') === 'clear_limits') {
+    csrf_check();
+    db()->exec("DELETE FROM login_attempts");
+    flash('success', 'Obmedzenia prihlásenia a kontaktného formulára boli vynulované.');
+    redirect('admin/diagnostika.php');
+}
 if (is_post() && post('action') === 'test_mail') {
     csrf_check();
     $to = post('to');
@@ -43,7 +49,17 @@ $checks[] = ['Zápis do databázy', ($dbWritable ? 'áno' : 'NIE') . ' (vlastní
 $checks[] = ['Zápis do uploads/therapists/', (is_writable($uploads) ? 'áno' : 'NIE') . ' (vlastník: ' . $owner($uploads) . ')', is_writable($uploads)];
 $checks[] = ['base_url', (string) cfg('base_url') . ($baseHost !== $host ? ' – web otvárate cez ' . $host : ''), $baseHost === $host];
 $checks[] = ['HTTPS', request_is_https() ? 'áno' : 'nie', request_is_https()];
-$checks[] = ['Vaša IP podľa aplikácie', client_ip(), true];
+$ip = client_ip();
+$remote = (string) ($_SERVER['REMOTE_ADDR'] ?? '');
+$viaProxy = !empty($_SERVER['HTTP_X_FORWARDED_FOR']);
+$proxyUntrusted = $viaProxy && !ip_is_trusted_proxy($remote);   // proxy posiela X-Forwarded-For, ale nedôverujeme mu
+$checks[] = ['Vaša IP podľa aplikácie', $ip . ' (spojenie od ' . $remote . ($viaProxy ? ', X-Forwarded-For: ' . $_SERVER['HTTP_X_FORWARDED_FOR'] : '') . ')'
+    . ($proxyUntrusted ? ' – všetci návštevníci majú adresu proxy, preto sa obmedzenia sčítajú za všetkých: pridajte ' . $remote . ' do trusted_proxies v config.local.php' : ''),
+    !$proxyUntrusted];
+$s = db()->prepare("SELECT area, COUNT(*) AS n FROM login_attempts WHERE created_at > ? GROUP BY area");
+$s->execute([time() - 3600]);
+$limits = $s->fetchAll(PDO::FETCH_KEY_PAIR);
+$checks[] = ['Záznamy obmedzení za poslednú hodinu', $limits ? implode(', ', array_map(fn($k, $v) => "$k: $v", array_keys($limits), $limits)) : 'žiadne', true];
 $transport = (string) cfg('mail.transport');
 $checks[] = ['Odosielanie e-mailov', match ($transport) {
     'smtp' => 'SMTP ' . cfg('mail.smtp.host') . ':' . cfg('mail.smtp.port') . ' (' . (cfg('mail.smtp.encryption') ?: 'bez šifrovania') . '), používateľ ' . (cfg('mail.smtp.username') ?: '—'),
@@ -92,6 +108,12 @@ page_header('Diagnostika', 'admin', 'admin/diagnostika.php');
         <div class="form-row"><label>Poslať na</label><input type="email" name="to" required value="<?= e(post('to', (string) cfg('contact.email'))) ?>"></div>
         <button class="btn">Odoslať testovací e-mail</button>
       </form>
+    </div>
+    <div class="card" style="margin-top:20px">
+      <h3>Obmedzenia proti spamu</h3>
+      <p class="small muted">Kontaktný formulár prijme z jednej IP adresy najviac <?= (int) cfg('inquiry_limit_per_hour', 10) ?> dopytov za hodinu, prihlásenie 8 chybných pokusov za 15 minút. Keď ste prihlásený ako admin, formulár obmedzený nie je.</p>
+      <form method="post"><?= csrf_field() ?><input type="hidden" name="action" value="clear_limits">
+        <button class="btn btn-outline">Vynulovať obmedzenia</button></form>
     </div>
   </div>
 </div>

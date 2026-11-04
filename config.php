@@ -46,6 +46,9 @@ $config = [
         ],
     ],
 
+    // Kontaktný formulár: najviac toľko dopytov za hodinu z jednej IP adresy (ochrana proti spamu).
+    'inquiry_limit_per_hour' => 10,
+
     // Reverzné proxy, ktorým veríme hlavičky X-Forwarded-For / X-Forwarded-Proto
     // (Synology reverzné proxy beží na tom istom NAS, Docker používa siete 172.16.0.0/12).
     'trusted_proxies' => ['127.0.0.1', '::1', '172.16.0.0/12'],

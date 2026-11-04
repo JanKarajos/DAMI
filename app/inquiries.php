@@ -3,13 +3,15 @@ declare(strict_types=1);
 
 /* ================= Dopyty z kontaktného formulára ================= */
 
-const INQUIRY_MAX_PER_HOUR = 5;
-
+/** Ochrana proti spamu: najviac N dopytov za hodinu z jednej IP. Prihlásený admin (testovanie) nie je obmedzený. */
 function inquiry_throttled(): bool
 {
+    if (current_admin()) {
+        return false;
+    }
     $s = db()->prepare("SELECT COUNT(*) FROM login_attempts WHERE ip = ? AND area = 'inquiry' AND created_at > ?");
     $s->execute([client_ip(), time() - 3600]);
-    return (int) $s->fetchColumn() >= INQUIRY_MAX_PER_HOUR;
+    return (int) $s->fetchColumn() >= (int) cfg('inquiry_limit_per_hour', 10);
 }
 
 function inquiry_find(int $id): ?array
