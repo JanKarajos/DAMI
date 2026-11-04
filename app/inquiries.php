@@ -40,8 +40,9 @@ function create_inquiry(?array $therapy, array $d): array
         $therapy['id'] ?? null, $therapy['name'] ?? 'Všeobecná otázka',
         $d['client_name'], $d['client_email'], $d['client_phone'], $d['child_name'], $d['child_age'], $d['message'],
     ]);
+    $id = (int) db()->lastInsertId();   // hneď po vložení dopytu – ďalší INSERT by ID prepísal
     db()->prepare("INSERT INTO login_attempts (ip, area, created_at) VALUES (?, 'inquiry', ?)")->execute([client_ip(), time()]);
-    $inq = inquiry_find((int) db()->lastInsertId());
+    $inq = inquiry_find($id);
     mail_inquiry_created($inq, $therapy);
     return $inq;
 }
