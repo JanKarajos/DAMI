@@ -46,6 +46,11 @@ foreach (['pdo_sqlite', 'mbstring', 'openssl', 'gd', 'exif'] as $ext) {
 }
 $checks[] = ['Zápis do priečinka data/', (is_writable($data) ? 'áno' : 'NIE') . ' (vlastník: ' . $owner($data) . ')', is_writable($data)];
 $checks[] = ['Zápis do databázy', ($dbWritable ? 'áno' : 'NIE') . ' (vlastník: ' . $owner($dbFile) . ')', $dbWritable];
+foreach (['-wal', '-shm'] as $sfx) {
+    if (file_exists($dbFile . $sfx)) {
+        $checks[] = ['Súbor dami.sqlite' . $sfx, (is_writable($dbFile . $sfx) ? 'zapisovateľný' : 'NIE je zapisovateľný') . ' (vlastník: ' . $owner($dbFile . $sfx) . ')', is_writable($dbFile . $sfx)];
+    }
+}
 $checks[] = ['Zápis do uploads/therapists/', (is_writable($uploads) ? 'áno' : 'NIE') . ' (vlastník: ' . $owner($uploads) . ')', is_writable($uploads)];
 $checks[] = ['base_url', (string) cfg('base_url') . ($baseHost !== $host ? ' – web otvárate cez ' . $host : ''), $baseHost === $host];
 $checks[] = ['HTTPS', request_is_https() ? 'áno' : 'nie', request_is_https()];
@@ -89,6 +94,10 @@ page_header('Diagnostika', 'admin', 'admin/diagnostika.php');
           <td><span class="status <?= $ok ? 'status-free' : 'status-booked' ?>"><?= $ok ? 'OK' : 'Pozor' ?></span></td></tr>
       <?php endforeach; ?>
     </table></div>
+    <?php $lastErr = @file_get_contents($data . '/last-error.txt'); if ($lastErr): ?>
+      <h3 style="margin-top:24px">Posledná chyba servera</h3>
+      <pre style="white-space:pre-wrap;word-break:break-word;font-size:12px;background:#f3f8fc;border-radius:14px;padding:14px;max-height:320px;overflow:auto"><?= e($lastErr) ?></pre>
+    <?php endif; ?>
     <?php if (!$dbWritable || !is_writable($data)): ?>
       <div class="alert alert-error" style="margin-top:16px">Do databázy sa nedá zapisovať – rezervácie a dopyty skončia chybou 500.
         V Dockeri reštartujte projekt v Container Manager (práva sa pri štarte opravia). Vo Web Station pridajte používateľovi <b>http</b> právo Čítanie/Zápis na priečinky <code>data</code> a <code>uploads</code>.</div>

@@ -23,7 +23,11 @@ function inquiry_find(int $id): ?array
 
 function inquiries_new_count(): int
 {
-    return (int) db()->query("SELECT COUNT(*) FROM inquiries WHERE status = 'new'")->fetchColumn();
+    try {
+        return (int) db()->query("SELECT COUNT(*) FROM inquiries WHERE status = 'new'")->fetchColumn();
+    } catch (PDOException $ex) {
+        return 0;   // menu sa musí zobraziť aj pri probléme s databázou (napr. kvôli Diagnostike)
+    }
 }
 
 /** Uloží dopyt a odošle e-maily. $therapy môže byť null (všeobecná otázka). */
