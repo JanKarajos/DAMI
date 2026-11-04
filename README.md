@@ -4,7 +4,7 @@ Rezervačný systém pre Občianske združenie DAMI (Prešov). Má tri časti:
 
 | Časť | Adresa | Na čo slúži |
 |---|---|---|
-| **Verejný web** | `/index.php`, `/rezervacia.php`, `/kontakt.php` | Prehľad terapií, diagnostiky a tímu. Rezervácia v 4 krokoch: služba → terapeut → kalendár s voľnými časmi → kontaktné údaje. Služby „iba na dopyt“ (INPP) majú namiesto kalendára kontaktný formulár. |
+| **Verejný web** | `/index.php`, `/rezervacia.php`, `/kontakt.php` | Prehľad terapií, diagnostiky a tímu. Rezervácia v 4 krokoch: služba → terapeut → kalendár s voľnými časmi → kontaktné údaje. Služby „iba na dopyt“ (ABA, INPP) majú namiesto kalendára kontaktný formulár. |
 | **Portál terapeuta** | `/terapeut/` | Prihlásenie údajmi od admina. Vypisovanie termínov (jednotlivo aj hromadne), prehľad a rušenie rezervácií, úprava telefónu, popisu a fotky, zmena hesla. |
 | **Administrácia** | `/admin/` | Správa terapeutov, terapií a diagnostiky, dopyty z kontaktného formulára, priradenie terapeut × terapia, heslá terapeutov, prehľad všetkých rezervácií. |
 
@@ -38,9 +38,9 @@ E-maily terapeutov na webe nie sú, preto majú zástupnú adresu `…@doplnte-e
 Každá služba má v administrácii (Služby) dve nastavenia:
 
 - **Typ:** terapia alebo diagnostika. Diagnostika (ADOS-2) sa na webe aj v rezervácii zobrazuje v samostatnej sekcii.
-- **Spôsob objednania:** online kalendár alebo iba kontaktný formulár. Pri formulári (INPP) klient nevidí kalendár, ale pošle dopyt cez `/kontakt.php`. Dopyt sa uloží do sekcie **Dopyty** v administrácii. E-mail dostane centrum (`contact.email`), kópia `mail.admin_copy` a terapeuti priradení k službe. Klientovi príde automatické potvrdenie.
+- **Spôsob objednania:** online kalendár alebo iba kontaktný formulár. Pri formulári (ABA, INPP) klient nevidí kalendár, ale pošle dopyt cez `/kontakt.php`. Dopyt sa uloží do sekcie **Dopyty** v administrácii. E-mail dostane centrum (`contact.email`), kópia `mail.admin_copy` a terapeuti priradení k službe. Klientovi príde automatické potvrdenie.
 
-Formulár má ochranu proti spamu (skryté pole a najviac 5 dopytov za hodinu z jednej IP adresy). Pri aktualizácii databázy na verziu 4 sa INPP automaticky prepne na kontaktný formulár a ADOS-2 na diagnostiku.
+Formulár má ochranu proti spamu (skryté pole a najviac 5 dopytov za hodinu z jednej IP adresy). Pri aktualizácii databázy sa INPP (verzia 4) a ABA (verzia 5) automaticky prepnú na kontaktný formulár a ADOS-2 na diagnostiku. Online sa teda objednáva Neurofeedback a ADOS-2. Spôsob objednania sa dá kedykoľvek zmeniť v administrácii.
 
 ## Fotky terapeutov
 

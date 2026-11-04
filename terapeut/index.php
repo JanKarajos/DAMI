@@ -4,7 +4,7 @@ $me = require_therapist();
 $myId = (int) $me['id'];
 
 $myAllTherapies = therapies_by_therapist()[$myId] ?? [];
-// Do kalendára patria len služby s online rezerváciou (napr. INPP ide cez kontaktný formulár).
+// Do kalendára patria len služby s online rezerváciou (napr. ABA a INPP idú cez kontaktný formulár).
 $myTherapies = array_values(array_filter($myAllTherapies, 'therapy_is_online'));
 $defaultDuration = $myTherapies ? (int) $myTherapies[0]['duration_min'] : 60;
 $myTherapyIds = array_map(fn($t) => (int) $t['id'], $myTherapies);

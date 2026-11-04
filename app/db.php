@@ -45,6 +45,11 @@ function migrate(PDO $pdo): void
     if ($version < 4) {
         migrate_v4($pdo);
     }
+    if ($version < 5) {
+        // v5: ABA – tiež iba cez kontaktný formulár
+        $pdo->exec("UPDATE therapies SET booking_mode = 'inquiry' WHERE name LIKE '%(ABA)%' OR name LIKE 'Aplikovaná behaviorálna%'");
+        $pdo->exec('PRAGMA user_version = 5');
+    }
 }
 
 /**
