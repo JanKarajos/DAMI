@@ -102,10 +102,18 @@ Aplikácia za reverzným proxy správne rozpozná skutočnú IP návštevníka (
 
 **Ovládací panel → Plánovač úloh → Vytvoriť → Plánovaná úloha → Skript definovaný používateľom**, používateľ `root`, každých 15 minút, príkaz:
 
-- Docker: `docker exec dami php /var/www/html/cron/pripomienky.php`
+- Docker: `docker exec -u www-data dami php /var/www/html/cron/pripomienky.php`
 - Web Station: `/usr/local/bin/php82 /volume1/web/dami/cron/pripomienky.php` (číslo podľa verzie PHP)
 
-Potom môžete v `config.local.php` nastaviť `'pseudo_cron' => false`.
+Potom môžete v `config.local.php` nastaviť `'pseudo_cron' => false`. Skript sa pri spustení ako `root` sám prepne na vlastníka priečinka `data/`, aby databáza nezmenila vlastníka.
+
+### Riešenie problémov
+
+**Administrácia → Prehľad → Diagnostika servera** ukáže, či sa dá zapisovať do databázy a priečinkov, aké sú nastavenia e-mailu a HTTPS. Umožní aj poslať testovací e-mail a zobrazí presnú chybu SMTP.
+
+- **Chyba 500 po odoslaní formulára, ale stránky sa zobrazujú:** do databázy sa nedá zapisovať. V Dockeri reštartujte projekt (práva sa pri štarte opravia). Vo Web Station dajte používateľovi `http` právo Čítanie/Zápis na `data` a `uploads`.
+- **Prehliadač píše „Nezabezpečené“:** certifikát nepatrí k doméne. V **Ovládací panel → Zabezpečenie → Certifikát** vytvorte Let's Encrypt certifikát pre presnú doménu a v **Nastavenia** ho priraďte k položke reverzného proxy.
+- **Podrobnosti chýb** sú v logu kontajnera: **Container Manager → Kontajner → dami → Log**.
 
 ### E-maily
 

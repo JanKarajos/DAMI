@@ -8,6 +8,7 @@ declare(strict_types=1);
 function send_mail(string $to, string $subject, string $html, ?string $replyTo = null): bool
 {
     if (!filter_var($to, FILTER_VALIDATE_EMAIL) || is_placeholder_email($to)) {
+        $GLOBALS['mail_last_error'] = 'Neplatná alebo zástupná e-mailová adresa: ' . $to;
         return false;
     }
     $fromEmail = (string) cfg('mail.from_email');
@@ -45,6 +46,7 @@ function send_mail(string $to, string $subject, string $html, ?string $replyTo =
                 return file_put_contents(dirname((string) cfg('db_path')) . '/mail.log', $log, FILE_APPEND) !== false;
         }
     } catch (Throwable $ex) {
+        $GLOBALS['mail_last_error'] = $ex->getMessage();
         error_log('[DAMI mail] ' . $ex->getMessage());
         return false;
     }

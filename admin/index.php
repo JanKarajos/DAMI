@@ -46,7 +46,8 @@ $next = $s->fetchAll();
 
 page_header('Prehľad', 'admin', 'admin/index.php');
 ?>
-<section class="page-hero"><div class="container"><h1>Prehľad</h1></div></section>
+<section class="page-hero"><div class="container"><h1>Prehľad</h1>
+  <p><a href="<?= e(url('admin/diagnostika.php')) ?>">Diagnostika servera a testovací e-mail →</a></p></div></section>
 <section class="section" style="padding-top:32px">
 <div class="container">
   <div class="stats">
