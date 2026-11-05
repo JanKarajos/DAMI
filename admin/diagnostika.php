@@ -94,6 +94,10 @@ page_header('Diagnostika', 'admin', 'admin/diagnostika.php');
           <td><span class="status <?= $ok ? 'status-free' : 'status-booked' ?>"><?= $ok ? 'OK' : 'Pozor' ?></span></td></tr>
       <?php endforeach; ?>
     </table></div>
+    <?php $hist = @file($data . '/mail-history.log'); if ($hist): ?>
+      <h3 style="margin-top:24px">Posledné e-maily</h3>
+      <pre style="white-space:pre-wrap;word-break:break-word;font-size:12px;background:#f3f8fc;border-radius:14px;padding:14px;max-height:320px;overflow:auto"><?= e(implode('', array_reverse(array_slice($hist, -20)))) ?></pre>
+    <?php endif; ?>
     <?php $lastErr = @file_get_contents($data . '/last-error.txt'); if ($lastErr): ?>
       <h3 style="margin-top:24px">Posledná chyba servera</h3>
       <pre style="white-space:pre-wrap;word-break:break-word;font-size:12px;background:#f3f8fc;border-radius:14px;padding:14px;max-height:320px;overflow:auto"><?= e($lastErr) ?></pre>

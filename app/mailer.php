@@ -9,6 +9,7 @@ function send_mail(string $to, string $subject, string $html, ?string $replyTo =
 {
     if (!filter_var($to, FILTER_VALIDATE_EMAIL) || is_placeholder_email($to)) {
         $GLOBALS['mail_last_error'] = 'Neplatná alebo zástupná e-mailová adresa: ' . $to;
+        mail_history_add((string) cfg('mail.transport'), $to, $subject, false, 'preskočené – neplatná alebo zástupná adresa');
         return false;
     }
     $fromEmail = (string) cfg('mail.from_email');
@@ -35,21 +36,44 @@ function send_mail(string $to, string $subject, string $html, ?string $replyTo =
         . chunk_split(base64_encode($html))
         . "--$boundary--\r\n";
 
+    $transport = (string) cfg('mail.transport');
+    $error = null;
     try {
-        switch (cfg('mail.transport')) {
+        switch ($transport) {
             case 'smtp':
-                return smtp_send($fromEmail, $to, "To: $to\r\nSubject: $encSubject\r\n" . implode("\r\n", $headers), $body);
+                $ok = smtp_send($fromEmail, $to, "To: $to\r\nSubject: $encSubject\r\n" . implode("\r\n", $headers), $body);
+                break;
             case 'mail':
-                return mail($to, $encSubject, $body, implode("\r\n", $headers), '-f' . $fromEmail);
+                $ok = mail($to, $encSubject, $body, implode("\r\n", $headers), '-f' . $fromEmail);
+                if (!$ok) {
+                    $error = 'PHP mail() zlyhalo – server nemá poštový program, použite transport smtp.';
+                }
+                break;
             default:
                 $log = sprintf("==== %s ====\nTo: %s\nSubject: %s\n\n%s\n\n", date('Y-m-d H:i:s'), $to, $subject, $text);
-                return file_put_contents(dirname((string) cfg('db_path')) . '/mail.log', $log, FILE_APPEND) !== false;
+                $ok = file_put_contents(dirname((string) cfg('db_path')) . '/mail.log', $log, FILE_APPEND) !== false;
         }
     } catch (Throwable $ex) {
-        $GLOBALS['mail_last_error'] = $ex->getMessage();
-        error_log('[DAMI mail] ' . $ex->getMessage());
-        return false;
+        $ok = false;
+        $error = $ex->getMessage();
+        error_log('[DAMI mail] ' . $error);
     }
+    if ($error) {
+        $GLOBALS['mail_last_error'] = $error;
+    }
+    mail_history_add($transport, $to, $subject, (bool) $ok, $error);
+    return (bool) $ok;
+}
+
+/** História odoslaných e-mailov (posledných 100) pre Diagnostiku – bez obsahu správ. */
+function mail_history_add(string $transport, string $to, string $subject, bool $ok, ?string $error): void
+{
+    $file = dirname((string) cfg('db_path')) . '/mail-history.log';
+    $line = date('Y-m-d H:i:s') . ' | ' . ($ok ? ($transport === 'smtp' || $transport === 'mail' ? 'ODOSLANÝ' : 'IBA LOG (nie je zapnuté odosielanie)') : 'CHYBA')
+        . ' | ' . $to . ' | ' . $subject . ($error ? ' | ' . $error : '') . "\n";
+    $lines = is_file($file) ? (array) @file($file) : [];
+    $lines[] = $line;
+    @file_put_contents($file, implode('', array_slice($lines, -100)));
 }
 
 /** Zástupný e-mail (terapeut bez doplneného e-mailu) – nikam sa neposiela. */
