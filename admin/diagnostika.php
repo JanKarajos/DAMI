@@ -3,6 +3,11 @@ require dirname(__DIR__) . '/app/bootstrap.php';
 $admin = require_admin(true);   // dostupné aj pred zmenou hesla (napr. keď sa do databázy nedá zapisovať)
 
 $testResult = null;
+if (is_post() && post('action') === 'clear_error') {
+    csrf_check();
+    @unlink(APP_ROOT . '/data/last-error.txt');
+    redirect('admin/diagnostika.php');
+}
 if (is_post() && post('action') === 'clear_limits') {
     csrf_check();
     db()->exec("DELETE FROM login_attempts");
@@ -65,6 +70,24 @@ $s = db()->prepare("SELECT area, COUNT(*) AS n FROM login_attempts WHERE created
 $s->execute([time() - 3600]);
 $limits = $s->fetchAll(PDO::FETCH_KEY_PAIR);
 $checks[] = ['Záznamy obmedzení za poslednú hodinu', $limits ? implode(', ', array_map(fn($k, $v) => "$k: $v", array_keys($limits), $limits)) : 'žiadne', true];
+$localFile = APP_ROOT . '/config.local.php';
+$localKeys = [];
+$localOk = false;
+if (is_file($localFile)) {
+    $local = @include $localFile;
+    $localOk = is_array($local);
+    $flat = function (array $a, string $prefix = '') use (&$flat, &$localKeys): void {
+        foreach ($a as $k => $v) {
+            is_array($v) && $v && !array_is_list($v) ? $flat($v, $prefix . $k . '.') : $localKeys[] = $prefix . $k;
+        }
+    };
+    if ($localOk) {
+        $flat($local);
+    }
+}
+$checks[] = ['config.local.php', !is_file($localFile) ? 'neexistuje – použijú sa predvolené nastavenia (e-maily sa neodosielajú)'
+    : ($localOk ? 'načítaný, nastavuje: ' . implode(', ', $localKeys) : 'existuje, ale nevracia pole – skontrolujte, že začína <?php a obsahuje return [ ... ];'),
+    $localOk && in_array('mail.transport', $localKeys, true)];
 $transport = (string) cfg('mail.transport');
 $checks[] = ['Odosielanie e-mailov', match ($transport) {
     'smtp' => 'SMTP ' . cfg('mail.smtp.host') . ':' . cfg('mail.smtp.port') . ' (' . (cfg('mail.smtp.encryption') ?: 'bez šifrovania') . '), používateľ ' . (cfg('mail.smtp.username') ?: '—'),
@@ -100,6 +123,7 @@ page_header('Diagnostika', 'admin', 'admin/diagnostika.php');
     <?php endif; ?>
     <?php $lastErr = @file_get_contents($data . '/last-error.txt'); if ($lastErr): ?>
       <h3 style="margin-top:24px">Posledná chyba servera</h3>
+      <form method="post" style="margin-bottom:8px"><?= csrf_field() ?><input type="hidden" name="action" value="clear_error"><button class="btn btn-outline btn-sm">Vymazať záznam</button></form>
       <pre style="white-space:pre-wrap;word-break:break-word;font-size:12px;background:#f3f8fc;border-radius:14px;padding:14px;max-height:320px;overflow:auto"><?= e($lastErr) ?></pre>
     <?php endif; ?>
     <?php if (!$dbWritable || !is_writable($data)): ?>
