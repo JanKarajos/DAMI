@@ -23,7 +23,7 @@ page_header('Dopyty', 'admin', 'admin/dopyty.php');
 ?>
 <section class="page-hero"><div class="container">
   <h1>Dopyty z kontaktného formulára</h1>
-  <p>Služby s objednaním „iba kontaktný formulár“ (napr. INPP) a všeobecné otázky z webu.</p>
+  <p>Služby s objednaním „iba kontaktný formulár“ (napr. ABA, INPP) a všeobecné otázky z webu.</p>
 </div></section>
 <section class="section" style="padding-top:32px">
 <div class="container">

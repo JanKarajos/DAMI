@@ -1,0 +1,4 @@
+.git
+data/*
+uploads/therapists/*
+config.local.php

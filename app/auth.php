@@ -13,14 +13,22 @@ function login_throttled(string $area): bool
 
 function login_failed(string $area): void
 {
-    db()->prepare('INSERT INTO login_attempts (ip, area, created_at) VALUES (?, ?, ?)')
-        ->execute([client_ip(), $area, time()]);
-    db()->prepare('DELETE FROM login_attempts WHERE created_at < ?')->execute([time() - 86400]);
+    try {
+        db()->prepare('INSERT INTO login_attempts (ip, area, created_at) VALUES (?, ?, ?)')
+            ->execute([client_ip(), $area, time()]);
+        db()->prepare('DELETE FROM login_attempts WHERE created_at < ?')->execute([time() - 86400]);
+    } catch (PDOException $ex) {
+        error_log('[DAMI] ' . $ex->getMessage());   // napr. databáza iba na čítanie – prihlásenie nesmie spadnúť
+    }
 }
 
 function login_clear(string $area): void
 {
-    db()->prepare('DELETE FROM login_attempts WHERE ip = ? AND area = ?')->execute([client_ip(), $area]);
+    try {
+        db()->prepare('DELETE FROM login_attempts WHERE ip = ? AND area = ?')->execute([client_ip(), $area]);
+    } catch (PDOException $ex) {
+        error_log('[DAMI] ' . $ex->getMessage());
+    }
 }
 
 /* ---------- Admin ---------- */

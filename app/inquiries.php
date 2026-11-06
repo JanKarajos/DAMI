@@ -3,13 +3,15 @@ declare(strict_types=1);
 
 /* ================= Dopyty z kontaktného formulára ================= */
 
-const INQUIRY_MAX_PER_HOUR = 5;
-
+/** Ochrana proti spamu: najviac N dopytov za hodinu z jednej IP. Prihlásený admin (testovanie) nie je obmedzený. */
 function inquiry_throttled(): bool
 {
+    if (current_admin()) {
+        return false;
+    }
     $s = db()->prepare("SELECT COUNT(*) FROM login_attempts WHERE ip = ? AND area = 'inquiry' AND created_at > ?");
     $s->execute([client_ip(), time() - 3600]);
-    return (int) $s->fetchColumn() >= INQUIRY_MAX_PER_HOUR;
+    return (int) $s->fetchColumn() >= (int) cfg('inquiry_limit_per_hour', 10);
 }
 
 function inquiry_find(int $id): ?array
@@ -21,7 +23,11 @@ function inquiry_find(int $id): ?array
 
 function inquiries_new_count(): int
 {
-    return (int) db()->query("SELECT COUNT(*) FROM inquiries WHERE status = 'new'")->fetchColumn();
+    try {
+        return (int) db()->query("SELECT COUNT(*) FROM inquiries WHERE status = 'new'")->fetchColumn();
+    } catch (PDOException $ex) {
+        return 0;   // menu sa musí zobraziť aj pri probléme s databázou (napr. kvôli Diagnostike)
+    }
 }
 
 /** Uloží dopyt a odošle e-maily. $therapy môže byť null (všeobecná otázka). */
@@ -34,8 +40,9 @@ function create_inquiry(?array $therapy, array $d): array
         $therapy['id'] ?? null, $therapy['name'] ?? 'Všeobecná otázka',
         $d['client_name'], $d['client_email'], $d['client_phone'], $d['child_name'], $d['child_age'], $d['message'],
     ]);
+    $id = (int) db()->lastInsertId();   // hneď po vložení dopytu – ďalší INSERT by ID prepísal
     db()->prepare("INSERT INTO login_attempts (ip, area, created_at) VALUES (?, 'inquiry', ?)")->execute([client_ip(), time()]);
-    $inq = inquiry_find((int) db()->lastInsertId());
+    $inq = inquiry_find($id);
     mail_inquiry_created($inq, $therapy);
     return $inq;
 }

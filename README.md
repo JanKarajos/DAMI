@@ -4,7 +4,7 @@ Rezervačný systém pre Občianske združenie DAMI (Prešov). Má tri časti:
 
 | Časť | Adresa | Na čo slúži |
 |---|---|---|
-| **Verejný web** | `/index.php`, `/rezervacia.php`, `/kontakt.php` | Prehľad terapií, diagnostiky a tímu. Rezervácia v 4 krokoch: služba → terapeut → kalendár s voľnými časmi → kontaktné údaje. Služby „iba na dopyt“ (INPP) majú namiesto kalendára kontaktný formulár. |
+| **Verejný web** | `/index.php`, `/rezervacia.php`, `/kontakt.php` | Prehľad terapií, diagnostiky a tímu. Rezervácia v 4 krokoch: služba → terapeut → kalendár s voľnými časmi → kontaktné údaje. Služby „iba na dopyt“ (ABA, INPP) majú namiesto kalendára kontaktný formulár. |
 | **Portál terapeuta** | `/terapeut/` | Prihlásenie údajmi od admina. Vypisovanie termínov (jednotlivo aj hromadne), prehľad a rušenie rezervácií, úprava telefónu, popisu a fotky, zmena hesla. |
 | **Administrácia** | `/admin/` | Správa terapeutov, terapií a diagnostiky, dopyty z kontaktného formulára, priradenie terapeut × terapia, heslá terapeutov, prehľad všetkých rezervácií. |
 
@@ -38,9 +38,9 @@ E-maily terapeutov na webe nie sú, preto majú zástupnú adresu `…@doplnte-e
 Každá služba má v administrácii (Služby) dve nastavenia:
 
 - **Typ:** terapia alebo diagnostika. Diagnostika (ADOS-2) sa na webe aj v rezervácii zobrazuje v samostatnej sekcii.
-- **Spôsob objednania:** online kalendár alebo iba kontaktný formulár. Pri formulári (INPP) klient nevidí kalendár, ale pošle dopyt cez `/kontakt.php`. Dopyt sa uloží do sekcie **Dopyty** v administrácii. E-mail dostane centrum (`contact.email`), kópia `mail.admin_copy` a terapeuti priradení k službe. Klientovi príde automatické potvrdenie.
+- **Spôsob objednania:** online kalendár alebo iba kontaktný formulár. Pri formulári (ABA, INPP) klient nevidí kalendár, ale pošle dopyt cez `/kontakt.php`. Dopyt sa uloží do sekcie **Dopyty** v administrácii. E-mail dostane centrum (`contact.email`), kópia `mail.admin_copy` a terapeuti priradení k službe. Klientovi príde automatické potvrdenie.
 
-Formulár má ochranu proti spamu (skryté pole a najviac 5 dopytov za hodinu z jednej IP adresy). Pri aktualizácii databázy na verziu 4 sa INPP automaticky prepne na kontaktný formulár a ADOS-2 na diagnostiku.
+Formulár má ochranu proti spamu (skryté pole a najviac 10 dopytov za hodinu z jednej IP adresy – nastavenie `inquiry_limit_per_hour`; prihlásený admin nie je obmedzený, vynulovať sa dá v Diagnostike). Pri aktualizácii databázy sa INPP (verzia 4) a ABA (verzia 5) automaticky prepnú na kontaktný formulár a ADOS-2 na diagnostiku. Online sa teda objednáva Neurofeedback a ADOS-2. Spôsob objednania sa dá kedykoľvek zmeniť v administrácii.
 
 ## Fotky terapeutov
 
@@ -62,6 +62,62 @@ Pripomienky odosiela cron:
 ```
 
 Ak hosting cron nemá, nechajte `pseudo_cron => true`. Kontrola sa potom spustí pri návšteve webu, najviac raz za 10 minút.
+
+## Synology NAS
+
+Sú dve možnosti. **Odporúčame Container Manager (Docker)**, lebo všetko potrebné (PHP 8.3, GD, Apache) je pripravené v `Dockerfile`. Ak váš NAS Container Manager nepodporuje (napr. modely série „j“), použite Web Station.
+
+### A) Container Manager (Docker)
+
+1. V **Centre balíkov** nainštalujte **Container Manager**.
+2. Vo **File Station** vytvorte priečinok, napr. `docker/dami`, a nahrajte doň obsah repozitára (ZIP z GitHubu → Code → Download ZIP, rozbaliť).
+3. Vytvorte `config.local.php` podľa `config.local.example.php` (minimálne `base_url`, neskôr SMTP).
+4. **Container Manager → Projekt → Vytvoriť**: názov `dami`, cesta `/docker/dami`, zdroj „Použiť existujúci docker-compose.yml“ → Ďalej → Hotovo. Prvé zostavenie trvá pár minút.
+5. Aplikácia beží na `http://IP-NAS:8080` (port zmeníte v `docker-compose.yml`).
+
+Databáza (`data/`), fotky (`uploads/`) a `config.local.php` zostávajú v priečinku `docker/dami` – zálohujte ho (Hyper Backup). **Aktualizácia:** nahrajte nové súbory (okrem `data/`, `uploads/` a `config.local.php`) a v Container Manager projekt zastavte a znova spustite (pri zmene `Dockerfile` zvoľte „Zostaviť“).
+
+### B) Web Station (bez Dockera)
+
+1. V **Centre balíkov** nainštalujte **Web Station**, **Apache HTTP Server 2.4** a **PHP 8.2** (alebo novšie).
+2. **Web Station → Nastavenia skriptovacieho jazyka → PHP → Vytvoriť** profil: PHP 8.2 a zapnite rozšírenia `gd`, `exif`, `mbstring`, `openssl`, `pdo_sqlite`, `sqlite3`.
+3. Do zdieľaného priečinka `web` nahrajte aplikáciu, napr. `web/dami`.
+4. **Web Station → Webová služba → Vytvoriť → Natívny skriptovací jazyk**: koreň dokumentu `web/dami`, **HTTP back-end server: Apache 2.4** (nie Nginx – iba Apache číta `.htaccess`, ktoré chránia databázu a konfiguráciu), profil PHP z bodu 2.
+5. **Webový portál → Vytvoriť**: portál pre túto službu, napr. podľa portu (8080) alebo podľa názvu hostiteľa.
+6. Vo File Station → `web/dami/data` a `web/dami/uploads` → Vlastnosti → Povolenie: pridajte používateľa **http** s právom **Čítanie/Zápis** (použiť aj na podpriečinky).
+
+Po spustení overte, že `http://…/data/dami.sqlite` aj `http://…/config.php` vracajú chybu 403 (zakázané).
+
+### Prístup z internetu (HTTPS)
+
+1. **Ovládací panel → Externý prístup → DDNS**: pridajte napr. `ozdami.synology.me` (alebo použite vlastnú doménu, napr. `rezervacie.ozdami.sk` s DNS záznamom na verejnú IP).
+2. **Ovládací panel → Zabezpečenie → Certifikát → Pridať → Let's Encrypt** pre túto doménu.
+3. **Ovládací panel → Prihlasovací portál → Rozšírené → Reverzné proxy → Vytvoriť**: zdroj `HTTPS`, názov hostiteľa `rezervacie.ozdami.sk`, port 443 → cieľ `HTTP`, `localhost`, port `8080`. Hlavičky `X-Forwarded-For` a `X-Forwarded-Proto` posiela Synology automaticky.
+4. Na routeri presmerujte porty **443** (a 80 pre obnovu certifikátu) na IP adresu NAS.
+5. V `config.local.php` nastavte `'base_url' => 'https://rezervacie.ozdami.sk'` – použije sa v odkazoch v e-mailoch.
+
+Aplikácia za reverzným proxy správne rozpozná skutočnú IP návštevníka (obmedzenie pokusov o prihlásenie) aj HTTPS (bezpečné cookie) – dôveryhodné proxy sú v nastavení `trusted_proxies`.
+
+### Pripomienky (Plánovač úloh)
+
+**Ovládací panel → Plánovač úloh → Vytvoriť → Plánovaná úloha → Skript definovaný používateľom**, používateľ `root`, každých 15 minút, príkaz:
+
+- Docker: `docker exec -u www-data dami php /var/www/html/cron/pripomienky.php`
+- Web Station: `/usr/local/bin/php82 /volume1/web/dami/cron/pripomienky.php` (číslo podľa verzie PHP)
+
+Potom môžete v `config.local.php` nastaviť `'pseudo_cron' => false`. Skript sa pri spustení ako `root` sám prepne na vlastníka priečinka `data/`, aby databáza nezmenila vlastníka.
+
+### Riešenie problémov
+
+**Administrácia → Prehľad → Diagnostika servera** ukáže, či sa dá zapisovať do databázy a priečinkov, aké sú nastavenia e-mailu a HTTPS. Umožní aj poslať testovací e-mail a zobrazí presnú chybu SMTP.
+
+- **Chyba 500 po odoslaní formulára, ale stránky sa zobrazujú:** do databázy sa nedá zapisovať. V Dockeri reštartujte projekt (práva sa pri štarte opravia). Vo Web Station dajte používateľovi `http` právo Čítanie/Zápis na `data` a `uploads`.
+- **Prehliadač píše „Nezabezpečené“:** certifikát nepatrí k doméne. V **Ovládací panel → Zabezpečenie → Certifikát** vytvorte Let's Encrypt certifikát pre presnú doménu a v **Nastavenia** ho priraďte k položke reverzného proxy.
+- **Podrobnosti chýb** sú v logu kontajnera: **Container Manager → Kontajner → dami → Log**.
+
+### E-maily
+
+Domáca IP adresa NAS nie je vhodná na priame odosielanie pošty – použite SMTP schránku (hosting domény ozdami.sk alebo Gmail s heslom aplikácie), viď časť E-maily a pripomienky.
 
 ## Nastavenia (`config.php` / `config.local.php`)
 
