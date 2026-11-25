@@ -36,8 +36,15 @@ if (is_post()) {
             'description' => mb_substr(post('description'), 0, 3000),
             'position'    => mb_substr(post('position'), 0, 120),
             'active'      => post('active') === '1' ? 1 : 0,
+            'is_admin'    => post('is_admin') === '1' ? 1 : 0,
             'sort_order'  => (int) post('sort_order'),
         ];
+        // Kto je prihlásený ako terapeut-administrátor, nemôže sám sebe odobrať prístup ani sa deaktivovať.
+        $meAdmin = current_admin();
+        if ($id && !empty($meAdmin['therapist_id']) && (int) $meAdmin['therapist_id'] === $id) {
+            $d['is_admin'] = 1;
+            $d['active'] = 1;
+        }
         $selected = array_values(array_intersect(array_map('intval', (array) (isset($_POST['therapies']) ? $_POST['therapies'] : [])), $therapyIds));
         $errors = [];
         if ($d['first_name'] === '' || $d['last_name'] === '') $errors[] = 'Meno a priezvisko sú povinné.';
@@ -119,6 +126,13 @@ if (is_post()) {
         redirect('admin/terapeuti.php');
     }
 
+    // Vlastný účet terapeuta-administrátora sa nedá deaktivovať ani zmazať (stratil by prístup).
+    $meAdmin = current_admin();
+    if (in_array($action, ['toggle', 'delete'], true) && !empty($meAdmin['therapist_id']) && (int) $meAdmin['therapist_id'] === $id) {
+        flash('error', 'Vlastný účet nemôžete deaktivovať ani zmazať.');
+        redirect('admin/terapeuti.php');
+    }
+
     if ($action === 'toggle') {
         db()->prepare('UPDATE therapists SET active = 1 - active WHERE id = ?')->execute([$id]);
         flash('success', $t['active'] ? 'Terapeut bol deaktivovaný (nezobrazuje sa na webe a nemôže sa prihlásiť).' : 'Terapeut bol aktivovaný.');
@@ -165,7 +179,7 @@ page_header('Terapeuti', 'admin', 'admin/terapeuti.php');
 <?php endif; ?>
 
 <?php if ($editing || $isNew):
-    $v = isset($old) ? $old : ($editing ?: ['title' => '', 'title_after' => '', 'first_name' => '', 'last_name' => '', 'email' => '', 'phone' => '', 'description' => '', 'position' => '', 'active' => 1, 'sort_order' => 0]);
+    $v = isset($old) ? $old : ($editing ?: ['title' => '', 'title_after' => '', 'first_name' => '', 'last_name' => '', 'email' => '', 'phone' => '', 'description' => '', 'position' => '', 'active' => 1, 'is_admin' => 0, 'sort_order' => 0]);
     $checked = $old ? array_map('intval', (array) (isset($old['therapies']) ? $old['therapies'] : [])) : ($editing ? therapy_ids_of_therapist((int) $editing['id']) : []);
 ?>
   <p><a href="<?= e(url('admin/terapeuti.php')) ?>">← späť na zoznam</a></p>
@@ -210,6 +224,7 @@ page_header('Terapeuti', 'admin', 'admin/terapeuti.php');
       <div class="form-grid">
         <div class="form-row"><label>Poradie na webe</label><input type="number" name="sort_order" value="<?= (int) $v['sort_order'] ?>"></div>
         <div class="form-row"><label>&nbsp;</label><label class="check"><input type="checkbox" name="active" value="1" <?= !empty($v['active']) ? 'checked' : '' ?>> Aktívny (zobrazuje sa a môže sa prihlásiť)</label></div>
+        <div class="form-row"><label>&nbsp;</label><label class="check"><input type="checkbox" name="is_admin" value="1" <?= !empty($v['is_admin']) ? 'checked' : '' ?>> Administrátor (prístup do administrácie)</label><div class="help">Prihlasuje sa svojím e-mailom a heslom.</div></div>
       </div>
       <?php if (!$editing): ?>
         <div class="form-grid">
@@ -261,6 +276,7 @@ page_header('Terapeuti', 'admin', 'admin/terapeuti.php');
           <td class="small"><?= e(implode(', ', array_column(isset($map[(int) $t['id']]) ? $map[(int) $t['id']] : [], 'name'))) ?: '<span class="muted">—</span>' ?></td>
           <td>
             <span class="status <?= $t['active'] ? 'status-free' : 'status-cancelled' ?>"><?= $t['active'] ? 'Aktívny' : 'Neaktívny' ?></span>
+            <?php if ((int) $t['is_admin'] === 1): ?><span class="status status-booked">Admin</span><?php endif; ?>
             <?php if ((int) $t['must_change_password']): ?><div class="small muted">čaká na zmenu hesla</div><?php endif; ?>
           </td>
           <td class="actions">

@@ -1,6 +1,9 @@
 <?php
 require dirname(__DIR__) . '/app/bootstrap.php';
 $admin = require_admin(true);
+if (admin_is_therapist($admin)) {
+    redirect('terapeut/profil.php');       // heslo a údaje si terapeut mení vo svojom profile
+}
 $mustChange = (int) $admin['must_change_password'] === 1;
 
 $error = null;

@@ -27,23 +27,33 @@ function page_header($title, $area = 'public', $active = '')
         ];
     }
     if ($area === 'admin') {
-        $nav = current_admin() ? [
+        $adm = current_admin();
+        $nav = $adm ? [
             'admin/index.php'      => 'Prehľad',
             'admin/terapeuti.php'  => 'Terapeuti',
             'admin/terapie.php'    => 'Služby',
             'admin/rezervacie.php' => 'Rezervácie',
             'admin/dopyty.php'     => 'Dopyty' . (($n = inquiries_new_count()) ? " ($n)" : ''),
-            'admin/administratori.php' => 'Administrátori',
             'admin/heslo.php'      => 'Môj účet',
             'admin/odhlasenie.php' => 'Odhlásiť',
         ] : [$back => 'Späť na web'];
+        if ($adm && admin_is_therapist($adm)) {
+            // terapeut-administrátor: „Môj účet“ je jeho profil, plus prechod do portálu terapeuta
+            unset($nav['admin/heslo.php'], $nav['admin/odhlasenie.php']);
+            $nav['terapeut/index.php'] = 'Portál terapeuta';
+            $nav['admin/odhlasenie.php'] = 'Odhlásiť';
+        }
     } elseif ($area === 'therapist') {
-        $nav = current_therapist() ? [
+        $th = current_therapist();
+        $nav = $th ? [
             'terapeut/index.php'      => 'Moje termíny',
             'terapeut/rezervacie.php' => 'Rezervácie',
             'terapeut/profil.php'     => 'Profil a heslo',
             'terapeut/odhlasenie.php' => 'Odhlásiť',
         ] : [$back => 'Späť na web'];
+        if ($th && (int) $th['is_admin'] === 1) {
+            $nav = array_slice($nav, 0, 3, true) + ['admin/index.php' => 'Administrácia'] + array_slice($nav, 3, null, true);
+        }
     } else {
         $nav = $publicNav;
     }

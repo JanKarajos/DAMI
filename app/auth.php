@@ -37,26 +37,52 @@ function admin_attempt_login($username, $password)
     $s = db()->prepare('SELECT * FROM admins WHERE username = ?');
     $s->execute([$username]);
     $a = $s->fetch();
-    if (!$a || !password_verify($password, $a['password_hash'])) {
-        return false;
+    if ($a && password_verify($password, $a['password_hash'])) {
+        session_regenerate_id(true);
+        $_SESSION['admin_id'] = (int) $a['id'];
+        return true;
     }
-    session_regenerate_id(true);
-    $_SESSION['admin_id'] = (int) $a['id'];
-    return true;
+    // Terapeut s právami administrátora sa prihlasuje svojím e-mailom a heslom.
+    $s = db()->prepare('SELECT * FROM therapists WHERE email = ? AND active = 1 AND is_admin = 1');
+    $s->execute([mb_strtolower(trim($username))]);
+    $t = $s->fetch();
+    if ($t && password_verify($password, $t['password_hash'])) {
+        session_regenerate_id(true);
+        $_SESSION['therapist_id'] = (int) $t['id'];
+        return true;
+    }
+    return false;
 }
 
 function current_admin()
 {
-    if (empty($_SESSION['admin_id'])) {
-        return null;
+    static $cache = false;
+    if ($cache !== false) {
+        return $cache;
     }
-    static $cache = null;
-    if ($cache === null) {
+    $cache = null;
+    if (!empty($_SESSION['admin_id'])) {
         $s = db()->prepare('SELECT * FROM admins WHERE id = ?');
         $s->execute([$_SESSION['admin_id']]);
         $cache = $s->fetch() ?: null;
     }
+    // Prihlásený terapeut so zaškrtnutou voľbou „Administrátor“
+    if (!$cache && ($t = current_therapist()) && (int) $t['is_admin'] === 1) {
+        $cache = [
+            'id'                   => 0,
+            'username'             => $t['email'],
+            'password_hash'        => $t['password_hash'],
+            'must_change_password' => $t['must_change_password'],
+            'therapist_id'         => (int) $t['id'],
+        ];
+    }
     return $cache;
+}
+
+/** Je administrátor zároveň terapeut (prihlásený cez svoj terapeutický účet)? */
+function admin_is_therapist($a)
+{
+    return !empty($a['therapist_id']);
 }
 
 function require_admin($allowMustChange = false)
@@ -67,7 +93,7 @@ function require_admin($allowMustChange = false)
     }
     if (!$allowMustChange && (int) $a['must_change_password'] === 1) {
         flash('info', 'Z bezpečnostných dôvodov si pred pokračovaním zmeňte predvolené heslo.');
-        redirect('admin/heslo.php');
+        redirect(admin_is_therapist($a) ? 'terapeut/profil.php' : 'admin/heslo.php');
     }
     return $a;
 }

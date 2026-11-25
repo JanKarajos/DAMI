@@ -56,6 +56,11 @@ function migrate(PDO $pdo)
         $pdo->exec("UPDATE therapies SET booking_mode = 'inquiry' WHERE name LIKE '%ADOS%'");
         $pdo->exec('PRAGMA user_version = 6');
     }
+    if ($version < 7) {
+        // v7: terapeut môže mať aj práva administrátora
+        $pdo->exec('ALTER TABLE therapists ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0');
+        $pdo->exec('PRAGMA user_version = 7');
+    }
 }
 
 /**

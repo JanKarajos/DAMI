@@ -25,7 +25,7 @@ page_header('Prihlásenie administrátora', 'admin');
     <?php if ($error): ?><div class="alert alert-error"><?= e($error) ?></div><?php endif; ?>
     <form method="post">
       <?= csrf_field() ?>
-      <div class="form-row"><label for="username">Používateľské meno</label>
+      <div class="form-row"><label for="username">Používateľské meno alebo e-mail terapeuta</label>
         <input type="text" id="username" name="username" required autofocus autocomplete="username" value="<?= e(post('username')) ?>"></div>
       <div class="form-row"><label for="password">Heslo</label>
         <input type="password" id="password" name="password" required autocomplete="current-password"></div>
