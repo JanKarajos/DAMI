@@ -62,7 +62,7 @@ function inquiry_details_html(array $q)
             continue;
         }
         $html .= '<tr><td style="border-bottom:1px solid #e5f0f7;color:#5f7283;width:120px">' . e($k)
-            . '</td><td style="border-bottom:1px solid #e5f0f7"><strong>' . nl2br(e($v)) . '</strong></td></tr>';
+            . '</td><td style="border-bottom:1px solid #e5f0f7"><strong>' . mail_detail_value($k, $v) . '</strong></td></tr>';
     }
     return $html . '</table>';
 }
@@ -74,8 +74,8 @@ function mail_inquiry_created(array $q, array $therapy)
         <p>Dobrý deň, ' . e($q['client_name']) . ',</p>
         <p>ďakujeme, váš dopyt sme prijali. Ozveme sa vám čo najskôr e-mailom alebo telefonicky a dohodneme ďalší postup.</p>'
         . inquiry_details_html($q) . '
-        <p style="font-size:13px;color:#6b7b79">V prípade otázok nás kontaktujte na ' . e(cfg('contact.email'))
-        . (cfg('contact.phone') ? ' alebo ' . e(cfg('contact.phone')) : '') . '.</p>
+        <p style="font-size:13px;color:#6b7b79">V prípade otázok nás kontaktujte na ' . mail_link('mailto:' . cfg('contact.email'), (string) cfg('contact.email'), '#0D6FB0')
+        . (cfg('contact.phone') ? ' alebo ' . mail_link(tel_href(cfg('contact.phone')), (string) cfg('contact.phone'), '#0D6FB0') : '') . '.</p>
         <p>S pozdravom<br>' . e(cfg('site_name')) . '</p>');
     send_mail($q['client_email'], 'Prijali sme váš dopyt – ' . $q['therapy_name'], $client, (string) cfg('contact.email'));
 

@@ -241,7 +241,7 @@ function booking_details_html(array $b)
             continue;
         }
         $html .= '<tr><td style="border-bottom:1px solid #e5f0f7;color:#5f7283;width:120px">' . e($k)
-            . '</td><td style="border-bottom:1px solid #e5f0f7"><strong>' . nl2br(e($v)) . '</strong></td></tr>';
+            . '</td><td style="border-bottom:1px solid #e5f0f7"><strong>' . mail_detail_value($k, $v) . '</strong></td></tr>';
     }
     return $html . '</table>';
 }
@@ -277,8 +277,8 @@ function mail_booking_created(array $b)
         <p>' . mail_button(google_calendar_link($b), 'Pridať do kalendára')
         . mail_button($manage, 'Zobraziť / zrušiť rezerváciu', '#D81B81') . '</p>
         <p style="font-size:13px;color:#6b7b79">Termín môžete bezplatne zrušiť najneskôr ' . $cancelInfo
-        . ' hodín vopred. V prípade otázok kontaktujte terapeuta: ' . e($b['therapist_email'])
-        . ($b['therapist_phone'] ? ', ' . e($b['therapist_phone']) : '') . '.</p>
+        . ' hodín vopred. V prípade otázok kontaktujte terapeuta: ' . mail_link('mailto:' . $b['therapist_email'], $b['therapist_email'], '#0D6FB0')
+        . ($b['therapist_phone'] ? ', ' . mail_link(tel_href($b['therapist_phone']), $b['therapist_phone'], '#0D6FB0') : '') . '.</p>
         <p>Tešíme sa na vás.<br>' . e(cfg('site_name')) . '</p>');
     send_mail($b['client_email'], 'Potvrdenie rezervácie – ' . $b['therapy_name'] . ', ' . fmt_datetime($b['starts_at']), $client, $b['therapist_email']);
 

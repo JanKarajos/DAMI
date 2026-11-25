@@ -169,13 +169,44 @@ function mail_html_to_text($html)
     return trim(preg_replace("/\n\s*\n+/", "\n\n", $text));
 }
 
+/** Odkaz tel: v medzinárodnom tvare (0907 216 194 → +421907216194), aby sa dalo hneď zavolať. */
+function tel_href($phone)
+{
+    $n = preg_replace('/[^0-9+]/', '', (string) $phone);
+    if (strpos($n, '00') === 0) {
+        $n = '+' . substr($n, 2);
+    } elseif ($n !== '' && $n[0] === '0') {
+        $n = '+421' . substr($n, 1);
+    }
+    return 'tel:' . $n;
+}
+
+/** Odkaz v e-maile s pevnou farbou – e-mailové programy inak menia farbu odkazov (napr. Gmail na modrú). */
+function mail_link($href, $text, $color)
+{
+    return '<a href="' . e($href) . '" style="color:' . $color . ';text-decoration:underline">'
+        . '<span style="color:' . $color . '">' . e($text) . '</span></a>';
+}
+
+/** Hodnota v tabuľke údajov: e-mail a telefón ako klikateľné odkazy, ostatné ako text. */
+function mail_detail_value($label, $value)
+{
+    if ($label === 'E-mail' && filter_var($value, FILTER_VALIDATE_EMAIL)) {
+        return mail_link('mailto:' . $value, $value, '#0D6FB0');
+    }
+    if ($label === 'Telefón') {
+        return mail_link(tel_href($value), $value, '#0D6FB0');
+    }
+    return nl2br(e($value));
+}
+
 /** Zabalí obsah do jednotného HTML šablóny e-mailu. */
 function mail_layout($title, $content)
 {
     $site = e(cfg('site_name'));
     $addr = e(cfg('contact.address'));
-    $mail = e(cfg('contact.email'));
-    $phone = cfg('contact.phone') ? ' · ' . e(cfg('contact.phone')) : '';
+    $mail = mail_link('mailto:' . cfg('contact.email'), (string) cfg('contact.email'), '#ffffff');
+    $phone = cfg('contact.phone') ? ' · ' . mail_link(tel_href(cfg('contact.phone')), (string) cfg('contact.phone'), '#ffffff') : '';
     $t = e($title);
     $logo = 'cid:' . MAIL_LOGO_CID;
     return <<<HTML
@@ -188,7 +219,7 @@ function mail_layout($title, $content)
 <h1 style="margin:0 0 16px;font-size:22px;color:#16364d;letter-spacing:-.5px">$t</h1>
 $content
 </td></tr>
-<tr><td style="background:#0D6FB0;background-image:linear-gradient(135deg,#0D6FB0,#5e2d85);color:#ffffff;padding:16px 28px;font-size:12px">$site · $addr<br>$mail$phone</td></tr>
+<tr><td style="background:#0D6FB0;background-image:linear-gradient(135deg,#0D6FB0,#5e2d85);color:#ffffff;padding:18px 28px;font-size:13px;line-height:1.7">$site · $addr<br>$mail$phone</td></tr>
 </table></td></tr></table></body></html>
 HTML;
 }
