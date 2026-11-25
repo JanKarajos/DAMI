@@ -33,6 +33,7 @@ function page_header($title, $area = 'public', $active = '')
             'admin/terapie.php'    => 'Služby',
             'admin/rezervacie.php' => 'Rezervácie',
             'admin/dopyty.php'     => 'Dopyty' . (($n = inquiries_new_count()) ? " ($n)" : ''),
+            'admin/administratori.php' => 'Administrátori',
             'admin/heslo.php'      => 'Môj účet',
             'admin/odhlasenie.php' => 'Odhlásiť',
         ] : [$back => 'Späť na web'];
