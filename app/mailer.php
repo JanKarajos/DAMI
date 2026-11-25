@@ -1,5 +1,7 @@
 <?php
 
+const MAIL_LOGO_CID = 'logo@dami';
+
 /**
  * Jednoduché odosielanie e-mailov (HTML + text) bez externých knižníc.
  * Transport: 'log' | 'mail' | 'smtp' (config mail.transport).
@@ -22,18 +24,34 @@ function send_mail($to, $subject, $html, $replyTo = null)
         'From: =?UTF-8?B?' . base64_encode($fromName) . '?= <' . $fromEmail . '>',
         'Message-ID: <' . bin2hex(random_bytes(16)) . '@' . (strpos($fromEmail, '@') !== false ? substr(strrchr($fromEmail, '@'), 1) : 'localhost') . '>',
         'MIME-Version: 1.0',
-        'Content-Type: multipart/alternative; boundary="' . $boundary . '"',
     ];
     if ($replyTo && filter_var($replyTo, FILTER_VALIDATE_EMAIL)) {
         $headers[] = 'Reply-To: ' . $replyTo;
     }
-    $body = "--$boundary\r\n"
+    $alternative = "--$boundary\r\n"
         . "Content-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\n"
         . chunk_split(base64_encode($text))
         . "--$boundary\r\n"
         . "Content-Type: text/html; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\n"
         . chunk_split(base64_encode($html))
         . "--$boundary--\r\n";
+    // Logo je priamo v e-maile (príloha cid:), nie odkaz na web – zobrazí sa vždy, aj keď web nebeží cez https.
+    $logoFile = APP_ROOT . '/assets/logo-mail.png';
+    if (strpos($html, 'cid:' . MAIL_LOGO_CID) !== false && is_file($logoFile)) {
+        $related = 'r_' . bin2hex(random_bytes(12));
+        $headers[] = 'Content-Type: multipart/related; type="multipart/alternative"; boundary="' . $related . '"';
+        $body = "--$related\r\n"
+            . 'Content-Type: multipart/alternative; boundary="' . $boundary . "\"\r\n\r\n"
+            . $alternative
+            . "--$related\r\n"
+            . "Content-Type: image/png; name=\"logo.png\"\r\nContent-Transfer-Encoding: base64\r\n"
+            . 'Content-ID: <' . MAIL_LOGO_CID . ">\r\nContent-Disposition: inline; filename=\"logo.png\"\r\n\r\n"
+            . chunk_split(base64_encode((string) file_get_contents($logoFile)))
+            . "--$related--\r\n";
+    } else {
+        $headers[] = 'Content-Type: multipart/alternative; boundary="' . $boundary . '"';
+        $body = $alternative;
+    }
 
     $transport = (string) cfg('mail.transport');
     $error = null;
@@ -159,13 +177,13 @@ function mail_layout($title, $content)
     $mail = e(cfg('contact.email'));
     $phone = cfg('contact.phone') ? ' · ' . e(cfg('contact.phone')) : '';
     $t = e($title);
-    $logo = e(abs_url('assets/logo.png'));
+    $logo = 'cid:' . MAIL_LOGO_CID;
     return <<<HTML
 <!doctype html><html lang="sk"><head><meta charset="utf-8"><title>$t</title></head>
 <body style="margin:0;background:#f7fbfe;font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif;color:#183247">
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#f7fbfe;padding:24px 0"><tr><td align="center">
 <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;background:#ffffff;border-radius:22px;overflow:hidden;box-shadow:0 14px 30px rgba(13,111,176,.08)">
-<tr><td style="background:#eef8fe;padding:18px 28px"><img src="$logo" alt="DAMI" height="40" style="display:block;height:40px;border:0"></td></tr>
+<tr><td style="background:#eef8fe;padding:18px 28px"><img src="$logo" alt="DAMI" width="135" height="40" style="display:block;width:135px;height:40px;border:0"></td></tr>
 <tr><td style="padding:28px">
 <h1 style="margin:0 0 16px;font-size:22px;color:#16364d;letter-spacing:-.5px">$t</h1>
 $content
