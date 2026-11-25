@@ -68,7 +68,7 @@ Ak hosting cron nemá, nechajte `pseudo_cron => true`. Kontrola sa potom spustí
 Rezervácia môže bežať priamo na hostingu webu, napr. `https://www.ozdami.sk/rezervacia/`. Návštevník tak neodíde z domény ozdami.sk.
 
 1. Na hosting (FTP alebo správca súborov) nahrajte obsah aplikácie do priečinka `rezervacia/` vedľa `index.html` webu.
-2. V nastaveniach hostingu zvoľte **PHP 8.1 alebo novšie** s rozšíreniami `pdo_sqlite`, `mbstring`, `openssl` a `gd`.
+2. V nastaveniach hostingu zvoľte **PHP 8.1 alebo novšie** s rozšíreniami `pdo_sqlite`, `mbstring`, `openssl` a `gd`. Overíte to na `https://www.ozdami.sk/rezervacia/kontrola.php`, ktorý funguje aj na starom PHP. Na Windows hostingu (IIS) chráni citlivé priečinky súbor `web.config` namiesto `.htaccess`.
 3. Vytvorte `rezervacia/config.local.php`:
    ```php
    <?php
