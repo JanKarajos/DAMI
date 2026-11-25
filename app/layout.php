@@ -55,7 +55,7 @@ function page_header($title, $area = 'public', $active = '')
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title><?= e($title) ?> | <?= e($site) ?></title>
-<link rel="stylesheet" href="<?= e(url('assets/style.css')) ?>?v=4">
+<link rel="stylesheet" href="<?= e(url('assets/style.css')) ?>?v=5">
 <link rel="icon" type="image/png" href="<?= e(url('assets/favicon.png')) ?>">
 </head>
 <?php $siteHeader = $area === 'public' ? site_header() : null; ?>

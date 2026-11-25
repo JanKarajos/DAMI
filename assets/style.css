@@ -304,3 +304,4 @@ body.with-site-header .flashes { position: relative; top: 110px; margin-bottom: 
 body.with-site-header #booking { scroll-margin-top: 110px; }
 @media (max-width: 760px) { body.with-site-header .page-hero { padding-top: 130px; } }
 body.with-site-header.menu-open { overflow: hidden; }
+body.with-site-header { overflow-x: hidden; } /* ako na webe: oblúk pätičky presahuje do strán */

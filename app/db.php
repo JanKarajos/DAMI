@@ -49,6 +49,13 @@ function migrate(PDO $pdo)
         $pdo->exec("UPDATE therapies SET booking_mode = 'inquiry' WHERE name LIKE '%(ABA)%' OR name LIKE 'Aplikovaná behaviorálna%'");
         $pdo->exec('PRAGMA user_version = 5');
     }
+    if ($version < 6) {
+        // v6: Neurofeedback sa na webe nezobrazuje (deaktivovaný, dá sa znova zapnúť v administrácii),
+        //     diagnostika ADOS-2 iba cez kontaktný formulár
+        $pdo->exec("UPDATE therapies SET active = 0 WHERE name LIKE 'Neurofeedback%'");
+        $pdo->exec("UPDATE therapies SET booking_mode = 'inquiry' WHERE name LIKE '%ADOS%'");
+        $pdo->exec('PRAGMA user_version = 6');
+    }
 }
 
 /**

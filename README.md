@@ -40,7 +40,7 @@ Každá služba má v administrácii (Služby) dve nastavenia:
 - **Typ:** terapia alebo diagnostika. Diagnostika (ADOS-2) sa na webe aj v rezervácii zobrazuje v samostatnej sekcii.
 - **Spôsob objednania:** online kalendár alebo iba kontaktný formulár. Pri formulári (ABA, INPP) klient nevidí kalendár, ale pošle dopyt cez `/kontakt.php`. Dopyt sa uloží do sekcie **Dopyty** v administrácii. E-mail dostane centrum (`contact.email`), kópia `mail.admin_copy` a terapeuti priradení k službe. Klientovi príde automatické potvrdenie.
 
-Formulár má ochranu proti spamu (skryté pole a najviac 10 dopytov za hodinu z jednej IP adresy – nastavenie `inquiry_limit_per_hour`; prihlásený admin nie je obmedzený, vynulovať sa dá v Diagnostike). Pri aktualizácii databázy sa INPP (verzia 4) a ABA (verzia 5) automaticky prepnú na kontaktný formulár a ADOS-2 na diagnostiku. Online sa teda objednáva Neurofeedback a ADOS-2. Spôsob objednania sa dá kedykoľvek zmeniť v administrácii.
+Formulár má ochranu proti spamu (skryté pole a najviac 10 dopytov za hodinu z jednej IP adresy – nastavenie `inquiry_limit_per_hour`; prihlásený admin nie je obmedzený, vynulovať sa dá v Diagnostike). Pri aktualizácii databázy sa INPP (verzia 4) a ABA (verzia 5) automaticky prepnú na kontaktný formulár a ADOS-2 na diagnostiku. Verzia 6 skryje Neurofeedback (deaktivuje ho) a aj ADOS-2 prepne na kontaktný formulár – všetky služby sa teda objednávajú dopytom; stránka rezervácie vtedy zobrazí iba výber služby bez krokov kalendára. Spôsob objednania sa dá kedykoľvek zmeniť v administrácii.
 
 ## Fotky terapeutov
 

@@ -36,18 +36,26 @@ $data['csrf'] = csrf_token();
 $data['api'] = url('api.php');
 $data['horizonDays'] = (int) cfg('booking_horizon_days');
 
-page_header('Rezervácia termínu', 'public', 'rezervacia.php');
+// Ak sa žiadna služba neobjednáva cez kalendár, stránka slúži iba na výber služby a odoslanie dopytu.
+$anyOnline = false;
+foreach ($therapies as $t) {
+    if (therapy_is_online($t)) {
+        $anyOnline = true;
+    }
+}
+page_header($anyOnline ? 'Rezervácia termínu' : 'Objednanie', 'public', 'rezervacia.php');
 ?>
 <section class="page-hero">
   <div class="container">
-    <h1>Rezervácia termínu</h1>
-    <p class="muted mt-0">Vyberte si službu, terapeuta a voľný čas v kalendári.</p>
+    <h1><?= $anyOnline ? 'Rezervácia termínu' : 'Objednanie' ?></h1>
+    <p class="muted mt-0"><?= $anyOnline ? 'Vyberte si službu, terapeuta a voľný čas v kalendári.'
+        : 'Vyberte si službu a pošlite nám dopyt. Ozveme sa vám a dohodneme termín.' ?></p>
   </div>
 </section>
 
 <section class="section" style="padding-top:32px">
   <div class="container" id="booking">
-    <ol class="steps">
+    <ol class="steps<?= $anyOnline ? '' : ' hidden' ?>">
       <li data-step="1"><span>1</span> Služba</li>
       <li data-step="2"><span>2</span> Terapeut</li>
       <li data-step="3"><span>3</span> Termín</li>
