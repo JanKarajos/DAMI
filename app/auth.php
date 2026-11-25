@@ -1,17 +1,16 @@
 <?php
-declare(strict_types=1);
 
 const LOGIN_MAX_ATTEMPTS = 8;
 const LOGIN_WINDOW_SEC = 900;
 
-function login_throttled(string $area): bool
+function login_throttled($area)
 {
     $s = db()->prepare('SELECT COUNT(*) FROM login_attempts WHERE ip = ? AND area = ? AND created_at > ?');
     $s->execute([client_ip(), $area, time() - LOGIN_WINDOW_SEC]);
     return (int) $s->fetchColumn() >= LOGIN_MAX_ATTEMPTS;
 }
 
-function login_failed(string $area): void
+function login_failed($area)
 {
     try {
         db()->prepare('INSERT INTO login_attempts (ip, area, created_at) VALUES (?, ?, ?)')
@@ -22,7 +21,7 @@ function login_failed(string $area): void
     }
 }
 
-function login_clear(string $area): void
+function login_clear($area)
 {
     try {
         db()->prepare('DELETE FROM login_attempts WHERE ip = ? AND area = ?')->execute([client_ip(), $area]);
@@ -33,7 +32,7 @@ function login_clear(string $area): void
 
 /* ---------- Admin ---------- */
 
-function admin_attempt_login(string $username, string $password): bool
+function admin_attempt_login($username, $password)
 {
     $s = db()->prepare('SELECT * FROM admins WHERE username = ?');
     $s->execute([$username]);
@@ -46,7 +45,7 @@ function admin_attempt_login(string $username, string $password): bool
     return true;
 }
 
-function current_admin(): ?array
+function current_admin()
 {
     if (empty($_SESSION['admin_id'])) {
         return null;
@@ -60,7 +59,7 @@ function current_admin(): ?array
     return $cache;
 }
 
-function require_admin(bool $allowMustChange = false): array
+function require_admin($allowMustChange = false)
 {
     $a = current_admin();
     if (!$a) {
@@ -75,7 +74,7 @@ function require_admin(bool $allowMustChange = false): array
 
 /* ---------- Terapeut ---------- */
 
-function therapist_attempt_login(string $email, string $password): bool
+function therapist_attempt_login($email, $password)
 {
     $s = db()->prepare('SELECT * FROM therapists WHERE email = ? AND active = 1');
     $s->execute([$email]);
@@ -88,7 +87,7 @@ function therapist_attempt_login(string $email, string $password): bool
     return true;
 }
 
-function current_therapist(): ?array
+function current_therapist()
 {
     if (empty($_SESSION['therapist_id'])) {
         return null;
@@ -105,7 +104,7 @@ function current_therapist(): ?array
     return $cache;
 }
 
-function require_therapist(bool $allowMustChange = false): array
+function require_therapist($allowMustChange = false)
 {
     $t = current_therapist();
     if (!$t) {
@@ -118,7 +117,7 @@ function require_therapist(bool $allowMustChange = false): array
     return $t;
 }
 
-function validate_new_password(string $new, string $confirm): ?string
+function validate_new_password($new, $confirm)
 {
     if (mb_strlen($new) < 8) {
         return 'Nové heslo musí mať aspoň 8 znakov.';

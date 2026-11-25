@@ -1,7 +1,7 @@
 <?php
 require __DIR__ . '/app/bootstrap.php';
 
-$token = (string) ($_GET['t'] ?? $_POST['t'] ?? '');
+$token = (string) (isset($_GET['t']) ? $_GET['t'] : (isset($_POST['t']) ? $_POST['t'] : ''));
 $b = preg_match('/^[a-f0-9]{40}$/', $token) ? booking_find_by_token($token) : null;
 if (!$b) {
     http_response_code(404);

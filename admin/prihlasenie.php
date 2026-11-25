@@ -9,7 +9,7 @@ if (is_post()) {
     csrf_check();
     if (login_throttled('admin')) {
         $error = 'Príliš veľa neúspešných pokusov. Skúste to znova o 15 minút.';
-    } elseif (admin_attempt_login(post('username'), (string) ($_POST['password'] ?? ''))) {
+    } elseif (admin_attempt_login(post('username'), (string) (isset($_POST['password']) ? $_POST['password'] : ''))) {
         login_clear('admin');
         redirect('admin/index.php');
     } else {

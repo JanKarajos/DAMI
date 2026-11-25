@@ -10,7 +10,7 @@ Rezervačný systém pre Občianske združenie DAMI (Prešov). Má tri časti:
 
 ## Požiadavky
 
-- PHP 8.1+ s rozšíreniami `pdo_sqlite` a `mbstring` (bežný slovenský webhosting, napr. Websupport)
+- PHP 5.6 až 8.x (odporúčané 8.1+) s rozšíreniami `pdo_sqlite` a `mbstring` – beží aj na staršom Windows hostingu ozdami.sk
 - Nepotrebuje MySQL ani Composer – dáta sú v SQLite súbore `data/dami.sqlite`, ktorý sa vytvorí sám.
 
 ## Inštalácia
@@ -68,7 +68,7 @@ Ak hosting cron nemá, nechajte `pseudo_cron => true`. Kontrola sa potom spustí
 Rezervácia môže bežať priamo na hostingu webu, napr. `https://www.ozdami.sk/rezervacia/`. Návštevník tak neodíde z domény ozdami.sk.
 
 1. Na hosting (FTP alebo správca súborov) nahrajte obsah aplikácie do priečinka `rezervacia/` vedľa `index.html` webu.
-2. V nastaveniach hostingu zvoľte **PHP 8.1 alebo novšie** s rozšíreniami `pdo_sqlite`, `mbstring`, `openssl` a `gd`. Overíte to na `https://www.ozdami.sk/rezervacia/kontrola.php`, ktorý funguje aj na starom PHP. Na Windows hostingu (IIS) chráni citlivé priečinky súbor `web.config` namiesto `.htaccess`.
+2. Aplikácia beží na **PHP 5.6 až 8.x** (odporúčané je 8.1 alebo novšie) s rozšíreniami `pdo_sqlite`, `mbstring`, `openssl` a `gd`. Overíte to na `https://www.ozdami.sk/rezervacia/kontrola.php`. Kvôli hostingu ozdami.sk (Windows, PHP 5.6) je kód napísaný bez novších konštrukcií jazyka a chýbajúce funkcie dopĺňa `app/compat.php`; overené na PHP 5.6.40 (SQLite 3.8.10) aj PHP 8.3. Na Windows hostingu (IIS) chráni citlivé priečinky súbor `web.config` namiesto `.htaccess`.
 3. Vytvorte `rezervacia/config.local.php`:
    ```php
    <?php

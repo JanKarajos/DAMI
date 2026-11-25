@@ -1,7 +1,10 @@
 <?php
-declare(strict_types=1);
 
 define('APP_ROOT', dirname(__DIR__));
+// Chyby sa zapisujú do logu, nie na stránku (niektoré hostingy ich inak zobrazujú návštevníkom).
+ini_set('display_errors', '0');
+ini_set('log_errors', '1');
+require __DIR__ . '/compat.php';
 
 $GLOBALS['config'] = require APP_ROOT . '/config.php';
 date_default_timezone_set(cfg('timezone'));
@@ -20,13 +23,18 @@ require __DIR__ . '/layout.php';
 if (PHP_SAPI !== 'cli') {
     set_exception_handler('render_fatal_error');
     session_name('dami_sess');
-    session_set_cookie_params([
-        'lifetime' => 0,
-        'path'     => '/',
-        'httponly' => true,
-        'samesite' => 'Lax',
-        'secure'   => request_is_https(),
-    ]);
+    if (PHP_VERSION_ID >= 70300) {
+        session_set_cookie_params([
+            'lifetime' => 0,
+            'path'     => '/',
+            'httponly' => true,
+            'samesite' => 'Lax',
+            'secure'   => request_is_https(),
+        ]);
+    } else {
+        // staršie PHP nepozná SameSite parameter – pridá sa cez cestu cookie
+        session_set_cookie_params(0, '/; samesite=Lax', '', request_is_https(), true);
+    }
     session_start();
     header('X-Frame-Options: SAMEORIGIN');
     header('X-Content-Type-Options: nosniff');
@@ -37,7 +45,7 @@ if (PHP_SAPI !== 'cli') {
     }
 }
 
-function cfg(string $key, $default = null)
+function cfg($key, $default = null)
 {
     $value = $GLOBALS['config'];
     foreach (explode('.', $key) as $part) {
@@ -50,13 +58,13 @@ function cfg(string $key, $default = null)
 }
 
 /** Zrozumiteľná chybová stránka namiesto prázdnej „HTTP ERROR 500“. Detail ide do logu servera. */
-function render_fatal_error(Throwable $ex): void
+function render_fatal_error($ex)
 {
     $detail = get_class($ex) . ': ' . $ex->getMessage() . ' in ' . str_replace(APP_ROOT . '/', '', $ex->getFile()) . ':' . $ex->getLine();
     error_log('[DAMI] ' . $detail);
     // Posledná chyba pre Diagnostiku (ak sa dá zapisovať).
-    @file_put_contents(APP_ROOT . '/data/last-error.txt', date('Y-m-d H:i:s') . ' ' . ($_SERVER['REQUEST_METHOD'] ?? '') . ' '
-        . ($_SERVER['REQUEST_URI'] ?? '') . "\n" . $detail . "\n" . $ex->getTraceAsString() . "\n");
+    @file_put_contents(APP_ROOT . '/data/last-error.txt', date('Y-m-d H:i:s') . ' ' . (isset($_SERVER['REQUEST_METHOD']) ? $_SERVER['REQUEST_METHOD'] : '') . ' '
+        . (isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '') . "\n" . $detail . "\n" . $ex->getTraceAsString() . "\n");
     $msg = $ex->getMessage();
     $hint = '';
     if (preg_match('/readonly database|unable to open database|disk I\/O error/i', $msg)) {

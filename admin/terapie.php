@@ -3,7 +3,7 @@ require dirname(__DIR__) . '/app/bootstrap.php';
 require_admin();
 
 $therapists = therapists_all(false);
-$therapistIds = array_map(fn($t) => (int) $t['id'], $therapists);
+$therapistIds = array_map(function ($t) { return (int) $t['id']; }, $therapists);
 
 if (is_post()) {
     csrf_check();
@@ -18,19 +18,19 @@ if (is_post()) {
             'price'        => mb_substr(post('price'), 0, 60),
             'active'       => post('active') === '1' ? 1 : 0,
             'sort_order'   => (int) post('sort_order'),
-            'kind'         => isset(THERAPY_KINDS[post('kind')]) ? post('kind') : 'therapy',
-            'booking_mode' => isset(BOOKING_MODES[post('booking_mode')]) ? post('booking_mode') : 'online',
+            'kind'         => array_key_exists(post('kind'), therapy_kinds()) ? post('kind') : 'therapy',
+            'booking_mode' => array_key_exists(post('booking_mode'), booking_modes()) ? post('booking_mode') : 'online',
         ];
         if ($d['name'] === '') {
             $_SESSION['form_old'] = $_POST;
             flash('error', 'Názov služby je povinný.');
             redirect('admin/terapie.php?' . ($id ? 'upravit=' . $id : 'nova=1'));
         }
-        $selected = array_values(array_intersect(array_map('intval', (array) ($_POST['therapists'] ?? [])), $therapistIds));
+        $selected = array_values(array_intersect(array_map('intval', (array) (isset($_POST['therapists']) ? $_POST['therapists'] : [])), $therapistIds));
         $pdo = db();
         $pdo->beginTransaction();
         if ($id) {
-            $cols = implode(', ', array_map(fn($k) => "$k = :$k", array_keys($d)));
+            $cols = implode(', ', array_map(function ($k) { return "$k = :$k"; }, array_keys($d)));
             $pdo->prepare("UPDATE therapies SET $cols WHERE id = :id")->execute($d + ['id' => $id]);
         } else {
             $cols = array_keys($d);
@@ -66,10 +66,10 @@ if (is_post()) {
     }
 }
 
-$editId = (int) ($_GET['upravit'] ?? 0);
+$editId = (int) (isset($_GET['upravit']) ? $_GET['upravit'] : 0);
 $isNew = isset($_GET['nova']);
 $editing = $editId ? therapy_find($editId) : null;
-$old = $_SESSION['form_old'] ?? null;
+$old = isset($_SESSION['form_old']) ? $_SESSION['form_old'] : null;
 unset($_SESSION['form_old']);
 
 page_header('Terapie a diagnostika', 'admin', 'admin/terapie.php');
@@ -78,10 +78,10 @@ page_header('Terapie a diagnostika', 'admin', 'admin/terapie.php');
 <section class="section" style="padding-top:32px">
 <div class="container">
 <?php if ($editing || $isNew):
-    $v = $old ?? ($editing ?: ['name' => '', 'description' => '', 'duration_min' => 60, 'price' => '', 'active' => 1, 'sort_order' => 0, 'kind' => $_GET['typ'] ?? 'therapy', 'booking_mode' => 'online']);
+    $v = isset($old) ? $old : ($editing ?: ['name' => '', 'description' => '', 'duration_min' => 60, 'price' => '', 'active' => 1, 'sort_order' => 0, 'kind' => isset($_GET['typ']) ? $_GET['typ'] : 'therapy', 'booking_mode' => 'online']);
     $assigned = [];
     if ($old) {
-        $assigned = array_map('intval', (array) ($old['therapists'] ?? []));
+        $assigned = array_map('intval', (array) (isset($old['therapists']) ? $old['therapists'] : []));
     } elseif ($editing) {
         $s = db()->prepare('SELECT therapist_id FROM therapist_therapy WHERE therapy_id = ?');
         $s->execute([$editing['id']]);
@@ -92,15 +92,15 @@ page_header('Terapie a diagnostika', 'admin', 'admin/terapie.php');
   <form method="post" class="card" style="max-width:820px">
     <?= csrf_field() ?>
     <input type="hidden" name="action" value="save">
-    <input type="hidden" name="id" value="<?= (int) ($editing['id'] ?? 0) ?>">
+    <input type="hidden" name="id" value="<?= (int) (isset($editing['id']) ? $editing['id'] : 0) ?>">
     <h2><?= $editing ? 'Upraviť službu' : 'Nová služba' ?></h2>
     <div class="form-row"><label class="required">Názov</label><input type="text" name="name" required value="<?= e($v['name']) ?>"></div>
     <div class="form-grid">
       <div class="form-row"><label>Typ</label>
-        <select name="kind"><?php foreach (THERAPY_KINDS as $k => $l): ?><option value="<?= $k ?>" <?= ($v['kind'] ?? 'therapy') === $k ? 'selected' : '' ?>><?= e($l) ?></option><?php endforeach; ?></select>
+        <select name="kind"><?php foreach (therapy_kinds() as $k => $l): ?><option value="<?= $k ?>" <?= (isset($v['kind']) ? $v['kind'] : 'therapy') === $k ? 'selected' : '' ?>><?= e($l) ?></option><?php endforeach; ?></select>
         <div class="help">Diagnostika sa na webe zobrazuje v samostatnej sekcii.</div></div>
       <div class="form-row"><label>Spôsob objednania</label>
-        <select name="booking_mode"><?php foreach (BOOKING_MODES as $k => $l): ?><option value="<?= $k ?>" <?= ($v['booking_mode'] ?? 'online') === $k ? 'selected' : '' ?>><?= e($l) ?></option><?php endforeach; ?></select>
+        <select name="booking_mode"><?php foreach (booking_modes() as $k => $l): ?><option value="<?= $k ?>" <?= (isset($v['booking_mode']) ? $v['booking_mode'] : 'online') === $k ? 'selected' : '' ?>><?= e($l) ?></option><?php endforeach; ?></select>
         <div class="help">Pri „kontaktnom formulári“ klient neuvidí kalendár, ale pošle dopyt (príde do sekcie Dopyty a e-mailom).</div></div>
     </div>
     <div class="form-row"><label>Popis</label><textarea name="description"><?= e($v['description']) ?></textarea></div>
@@ -143,11 +143,11 @@ page_header('Terapie a diagnostika', 'admin', 'admin/terapie.php');
       <?php foreach ($list as $t): ?>
         <tr>
           <td><strong><?= e($t['name']) ?></strong><div class="small muted"><?= e(mb_strimwidth($t['description'], 0, 120, '…')) ?></div></td>
-          <td><?= e(THERAPY_KINDS[$t['kind']] ?? $t['kind']) ?></td>
+          <td><?php $kinds = therapy_kinds(); ?><?= e(isset($kinds[$t['kind']]) ? $kinds[$t['kind']] : $t['kind']) ?></td>
           <td class="small"><?= therapy_is_online($t) ? 'online kalendár' : '<strong>kontaktný formulár</strong>' ?></td>
           <td><?= (int) $t['duration_min'] ?> min</td>
           <td><?= e($t['price']) ?></td>
-          <td class="small"><?= e(implode(', ', $counts[(int) $t['id']] ?? [])) ?: '<span class="muted">nikto</span>' ?></td>
+          <td class="small"><?= e(implode(', ', isset($counts[(int) $t['id']]) ? $counts[(int) $t['id']] : [])) ?: '<span class="muted">nikto</span>' ?></td>
           <td><span class="status <?= $t['active'] ? 'status-free' : 'status-cancelled' ?>"><?= $t['active'] ? 'Aktívna' : 'Neaktívna' ?></span></td>
           <td class="actions">
             <a class="btn btn-outline btn-sm" href="?upravit=<?= (int) $t['id'] ?>">Upraviť</a>

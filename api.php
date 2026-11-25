@@ -1,12 +1,12 @@
 <?php
 require __DIR__ . '/app/bootstrap.php';
 
-$action = $_GET['action'] ?? '';
+$action = isset($_GET['action']) ? $_GET['action'] : '';
 
 if ($action === 'slots') {
-    $therapistId = (int) ($_GET['therapist'] ?? 0);
-    $therapyId = (int) ($_GET['therapy'] ?? 0);
-    $month = (string) ($_GET['month'] ?? date('Y-m'));
+    $therapistId = (int) (isset($_GET['therapist']) ? $_GET['therapist'] : 0);
+    $therapyId = (int) (isset($_GET['therapy']) ? $_GET['therapy'] : 0);
+    $month = (string) (isset($_GET['month']) ? $_GET['month'] : date('Y-m'));
     if (!preg_match('/^\d{4}-\d{2}$/', $month) || !therapist_does_therapy($therapistId, $therapyId)) {
         json_out(['error' => 'Neplatná požiadavka.'], 400);
     }
@@ -51,7 +51,7 @@ if ($action === 'book' && is_post()) {
     if ($errors) {
         json_out(['error' => implode(' ', $errors)], 422);
     }
-    [$booking, $err] = create_booking((int) post('slot_id'), (int) post('therapy_id'), $d);
+    list($booking, $err) = create_booking((int) post('slot_id'), (int) post('therapy_id'), $d);
     if ($err) {
         json_out(['error' => $err, 'slotTaken' => true], 409);
     }

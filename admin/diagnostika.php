@@ -21,29 +21,29 @@ if (is_post() && post('action') === 'test_mail') {
     $started = microtime(true);
     $ok = send_mail($to, 'Testovací e-mail – ' . cfg('site_short'), mail_layout('Testovací e-mail',
         '<p>Ak čítate tento e-mail, odosielanie z rezervačného systému funguje.</p><p>Odoslané: ' . e(date('d. m. Y H:i:s')) . '</p>'));
-    $testResult = [$ok, $GLOBALS['mail_last_error'] ?? null, round(microtime(true) - $started, 1)];
+    $testResult = [$ok, isset($GLOBALS['mail_last_error']) ? $GLOBALS['mail_last_error'] : null, round(microtime(true) - $started, 1)];
 }
 
 $data = APP_ROOT . '/data';
 $dbFile = (string) cfg('db_path');
 $uploads = APP_ROOT . '/' . PHOTO_DIR;
-$who = function_exists('posix_geteuid') ? (posix_getpwuid(posix_geteuid())['name'] ?? (string) posix_geteuid()) : get_current_user();
-$owner = function (string $path): string {
+$who = function_exists('posix_geteuid') ? (($pw = posix_getpwuid(posix_geteuid())) && isset($pw['name']) ? $pw['name'] : (string) posix_geteuid()) : get_current_user();
+$owner = function ($path) {
     if (!file_exists($path)) return 'neexistuje';
     $uid = fileowner($path);
-    return function_exists('posix_getpwuid') ? (posix_getpwuid($uid)['name'] ?? (string) $uid) : (string) $uid;
+    return function_exists('posix_getpwuid') ? (($pw = posix_getpwuid($uid)) && isset($pw['name']) ? $pw['name'] : (string) $uid) : (string) $uid;
 };
 $dbWritable = true;
 try {
-    db()->exec("INSERT INTO settings (key, value) VALUES ('diag_write', datetime('now')) ON CONFLICT(key) DO UPDATE SET value = excluded.value");
-} catch (Throwable $ex) {
+    db()->exec("INSERT OR REPLACE INTO settings (key, value) VALUES ('diag_write', datetime('now'))");
+} catch (Exception $ex) {
     $dbWritable = false;
 }
-$host = ($_SERVER['HTTP_HOST'] ?? '');
+$host = (isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : '');
 $baseHost = parse_url((string) cfg('base_url'), PHP_URL_HOST) . (parse_url((string) cfg('base_url'), PHP_URL_PORT) ? ':' . parse_url((string) cfg('base_url'), PHP_URL_PORT) : '');
 
 $checks = [
-    ['PHP verzia', PHP_VERSION, version_compare(PHP_VERSION, '8.1', '>=')],
+    ['PHP verzia', PHP_VERSION . (version_compare(PHP_VERSION, '8.1', '<') ? ' – funguje, ale táto verzia už nedostáva bezpečnostné opravy; ak hosting umožní, prejdite na PHP 8' : ''), version_compare(PHP_VERSION, '8.1', '>=')],
     ['Webový server beží ako', $who, true],
 ];
 foreach (['pdo_sqlite', 'mbstring', 'openssl', 'gd', 'exif'] as $ext) {
@@ -60,7 +60,7 @@ $checks[] = ['Zápis do uploads/therapists/', (is_writable($uploads) ? 'áno' : 
 $checks[] = ['base_url', (string) cfg('base_url') . ($baseHost !== $host ? ' – web otvárate cez ' . $host : ''), $baseHost === $host];
 $checks[] = ['HTTPS', request_is_https() ? 'áno' : 'nie', request_is_https()];
 $ip = client_ip();
-$remote = (string) ($_SERVER['REMOTE_ADDR'] ?? '');
+$remote = (string) (isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : '');
 $viaProxy = !empty($_SERVER['HTTP_X_FORWARDED_FOR']);
 $proxyUntrusted = $viaProxy && !ip_is_trusted_proxy($remote);   // proxy posiela X-Forwarded-For, ale nedôverujeme mu
 $checks[] = ['Vaša IP podľa aplikácie', $ip . ' (spojenie od ' . $remote . ($viaProxy ? ', X-Forwarded-For: ' . $_SERVER['HTTP_X_FORWARDED_FOR'] : '') . ')'
@@ -69,14 +69,14 @@ $checks[] = ['Vaša IP podľa aplikácie', $ip . ' (spojenie od ' . $remote . ($
 $s = db()->prepare("SELECT area, COUNT(*) AS n FROM login_attempts WHERE created_at > ? GROUP BY area");
 $s->execute([time() - 3600]);
 $limits = $s->fetchAll(PDO::FETCH_KEY_PAIR);
-$checks[] = ['Záznamy obmedzení za poslednú hodinu', $limits ? implode(', ', array_map(fn($k, $v) => "$k: $v", array_keys($limits), $limits)) : 'žiadne', true];
+$checks[] = ['Záznamy obmedzení za poslednú hodinu', $limits ? implode(', ', array_map(function ($k, $v) { return "$k: $v"; }, array_keys($limits), $limits)) : 'žiadne', true];
 $localFile = APP_ROOT . '/config.local.php';
 $localKeys = [];
 $localOk = false;
 if (is_file($localFile)) {
     $local = @include $localFile;
     $localOk = is_array($local);
-    $flat = function (array $a, string $prefix = '') use (&$flat, &$localKeys): void {
+    $flat = function (array $a, $prefix = '') use (&$flat, &$localKeys) {
         foreach ($a as $k => $v) {
             is_array($v) && $v && !array_is_list($v) ? $flat($v, $prefix . $k . '.') : $localKeys[] = $prefix . $k;
         }
@@ -89,11 +89,14 @@ $checks[] = ['config.local.php', !is_file($localFile) ? 'neexistuje – použij�
     : ($localOk ? 'načítaný, nastavuje: ' . implode(', ', $localKeys) : 'existuje, ale nevracia pole – skontrolujte, že začína <?php a obsahuje return [ ... ];'),
     $localOk && in_array('mail.transport', $localKeys, true)];
 $transport = (string) cfg('mail.transport');
-$checks[] = ['Odosielanie e-mailov', match ($transport) {
-    'smtp' => 'SMTP ' . cfg('mail.smtp.host') . ':' . cfg('mail.smtp.port') . ' (' . (cfg('mail.smtp.encryption') ?: 'bez šifrovania') . '), používateľ ' . (cfg('mail.smtp.username') ?: '—'),
-    'mail' => 'PHP mail()',
-    default => 'iba zápis do data/mail.log (testovací režim)',
-}, $transport === 'smtp' || $transport === 'mail'];
+if ($transport === 'smtp') {
+    $transportLabel = 'SMTP ' . cfg('mail.smtp.host') . ':' . cfg('mail.smtp.port') . ' (' . (cfg('mail.smtp.encryption') ?: 'bez šifrovania') . '), používateľ ' . (cfg('mail.smtp.username') ?: '—');
+} elseif ($transport === 'mail') {
+    $transportLabel = 'PHP mail()';
+} else {
+    $transportLabel = 'iba zápis do data/mail.log (testovací režim)';
+}
+$checks[] = ['Odosielanie e-mailov', $transportLabel, $transport === 'smtp' || $transport === 'mail'];
 $user = (string) cfg('mail.smtp.username');
 $fromOk = !($transport === 'smtp' && str_contains($user, '@') && strcasecmp($user, (string) cfg('mail.from_email')) !== 0);
 $checks[] = ['Odosielateľ', cfg('mail.from_name') . ' <' . cfg('mail.from_email') . '>'
@@ -112,7 +115,7 @@ page_header('Diagnostika', 'admin', 'admin/diagnostika.php');
   <div class="card">
     <h3>Stav</h3>
     <div class="table-wrap"><table class="table">
-      <?php foreach ($checks as [$label, $value, $ok]): ?>
+      <?php foreach ($checks as $chk): list($label, $value, $ok) = $chk; ?>
         <tr><th><?= e($label) ?></th><td><?= e((string) $value) ?></td>
           <td><span class="status <?= $ok ? 'status-free' : 'status-booked' ?>"><?= $ok ? 'OK' : 'Pozor' ?></span></td></tr>
       <?php endforeach; ?>
@@ -134,7 +137,7 @@ page_header('Diagnostika', 'admin', 'admin/diagnostika.php');
   <div>
     <div class="card">
       <h3>Testovací e-mail</h3>
-      <?php if ($testResult): [$ok, $err, $sec] = $testResult; ?>
+      <?php if ($testResult): list($ok, $err, $sec) = $testResult; ?>
         <div class="alert <?= $ok ? 'alert-success' : 'alert-error' ?>">
           <?= $ok ? ($transport === 'smtp' || $transport === 'mail' ? 'E-mail bol odoslaný (' . $sec . ' s). Skontrolujte schránku aj spam.' : 'E-mail bol iba zapísaný do data/mail.log – odosielanie nie je zapnuté (mail.transport).')
                   : 'Odoslanie zlyhalo (' . $sec . ' s): ' . e((string) $err) ?>

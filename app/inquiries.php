@@ -1,10 +1,9 @@
 <?php
-declare(strict_types=1);
 
 /* ================= Dopyty z kontaktného formulára ================= */
 
 /** Ochrana proti spamu: najviac N dopytov za hodinu z jednej IP. Prihlásený admin (testovanie) nie je obmedzený. */
-function inquiry_throttled(): bool
+function inquiry_throttled()
 {
     if (current_admin()) {
         return false;
@@ -14,14 +13,14 @@ function inquiry_throttled(): bool
     return (int) $s->fetchColumn() >= (int) cfg('inquiry_limit_per_hour', 10);
 }
 
-function inquiry_find(int $id): ?array
+function inquiry_find($id)
 {
     $s = db()->prepare('SELECT * FROM inquiries WHERE id = ?');
     $s->execute([$id]);
     return $s->fetch() ?: null;
 }
 
-function inquiries_new_count(): int
+function inquiries_new_count()
 {
     try {
         return (int) db()->query("SELECT COUNT(*) FROM inquiries WHERE status = 'new'")->fetchColumn();
@@ -31,13 +30,13 @@ function inquiries_new_count(): int
 }
 
 /** Uloží dopyt a odošle e-maily. $therapy môže byť null (všeobecná otázka). */
-function create_inquiry(?array $therapy, array $d): array
+function create_inquiry(array $therapy, array $d)
 {
     db()->prepare(
         'INSERT INTO inquiries (therapy_id, therapy_name, client_name, client_email, client_phone, child_name, child_age, message)
          VALUES (?,?,?,?,?,?,?,?)'
     )->execute([
-        $therapy['id'] ?? null, $therapy['name'] ?? 'Všeobecná otázka',
+        isset($therapy['id']) ? $therapy['id'] : null, isset($therapy['name']) ? $therapy['name'] : 'Všeobecná otázka',
         $d['client_name'], $d['client_email'], $d['client_phone'], $d['child_name'], $d['child_age'], $d['message'],
     ]);
     $id = (int) db()->lastInsertId();   // hneď po vložení dopytu – ďalší INSERT by ID prepísal
@@ -47,7 +46,7 @@ function create_inquiry(?array $therapy, array $d): array
     return $inq;
 }
 
-function inquiry_details_html(array $q): string
+function inquiry_details_html(array $q)
 {
     $rows = [
         'Služba'  => $q['therapy_name'],
@@ -68,7 +67,7 @@ function inquiry_details_html(array $q): string
     return $html . '</table>';
 }
 
-function mail_inquiry_created(array $q, ?array $therapy): void
+function mail_inquiry_created(array $q, array $therapy)
 {
     // Automatická odpoveď klientovi
     $client = mail_layout('Ďakujeme za váš dopyt', '

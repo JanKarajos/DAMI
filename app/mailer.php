@@ -1,11 +1,10 @@
 <?php
-declare(strict_types=1);
 
 /**
  * Jednoduché odosielanie e-mailov (HTML + text) bez externých knižníc.
  * Transport: 'log' | 'mail' | 'smtp' (config mail.transport).
  */
-function send_mail(string $to, string $subject, string $html, ?string $replyTo = null): bool
+function send_mail($to, $subject, $html, $replyTo = null)
 {
     if (!filter_var($to, FILTER_VALIDATE_EMAIL) || is_placeholder_email($to)) {
         $GLOBALS['mail_last_error'] = 'Neplatná alebo zástupná e-mailová adresa: ' . $to;
@@ -21,7 +20,7 @@ function send_mail(string $to, string $subject, string $html, ?string $replyTo =
     $headers = [
         'Date: ' . date('r'),
         'From: =?UTF-8?B?' . base64_encode($fromName) . '?= <' . $fromEmail . '>',
-        'Message-ID: <' . bin2hex(random_bytes(16)) . '@' . (explode('@', $fromEmail)[1] ?? 'localhost') . '>',
+        'Message-ID: <' . bin2hex(random_bytes(16)) . '@' . (strpos($fromEmail, '@') !== false ? substr(strrchr($fromEmail, '@'), 1) : 'localhost') . '>',
         'MIME-Version: 1.0',
         'Content-Type: multipart/alternative; boundary="' . $boundary . '"',
     ];
@@ -53,7 +52,7 @@ function send_mail(string $to, string $subject, string $html, ?string $replyTo =
                 $log = sprintf("==== %s ====\nTo: %s\nSubject: %s\n\n%s\n\n", date('Y-m-d H:i:s'), $to, $subject, $text);
                 $ok = file_put_contents(dirname((string) cfg('db_path')) . '/mail.log', $log, FILE_APPEND) !== false;
         }
-    } catch (Throwable $ex) {
+    } catch (Exception $ex) {
         $ok = false;
         $error = $ex->getMessage();
         error_log('[DAMI mail] ' . $error);
@@ -66,7 +65,7 @@ function send_mail(string $to, string $subject, string $html, ?string $replyTo =
 }
 
 /** História odoslaných e-mailov (posledných 100) pre Diagnostiku – bez obsahu správ. */
-function mail_history_add(string $transport, string $to, string $subject, bool $ok, ?string $error): void
+function mail_history_add($transport, $to, $subject, $ok, $error)
 {
     $file = dirname((string) cfg('db_path')) . '/mail-history.log';
     $line = date('Y-m-d H:i:s') . ' | ' . ($ok ? ($transport === 'smtp' || $transport === 'mail' ? 'ODOSLANÝ' : 'IBA LOG (nie je zapnuté odosielanie)') : 'CHYBA')
@@ -77,17 +76,17 @@ function mail_history_add(string $transport, string $to, string $subject, bool $
 }
 
 /** Zástupný e-mail (terapeut bez doplneného e-mailu) – nikam sa neposiela. */
-function is_placeholder_email(string $email): bool
+function is_placeholder_email($email)
 {
     return str_ends_with(mb_strtolower($email), '.invalid');
 }
 
-function smtp_send(string $from, string $to, string $headers, string $body): bool
+function smtp_send($from, $to, $headers, $body)
 {
     $c = cfg('mail.smtp');
     $host = $c['host'];
     $port = (int) $c['port'];
-    $enc = $c['encryption'] ?? '';
+    $enc = isset($c['encryption']) ? $c['encryption'] : '';
     $remote = ($enc === 'ssl' ? 'ssl://' : 'tcp://') . $host . ':' . $port;
     $fp = stream_socket_client($remote, $errno, $errstr, 15);
     if (!$fp) {
@@ -95,7 +94,7 @@ function smtp_send(string $from, string $to, string $headers, string $body): boo
     }
     stream_set_timeout($fp, 15);
 
-    $read = function () use ($fp): string {
+    $read = function () use ($fp) {
         $data = '';
         while (($line = fgets($fp, 515)) !== false) {
             $data .= $line;
@@ -105,7 +104,7 @@ function smtp_send(string $from, string $to, string $headers, string $body): boo
         }
         return $data;
     };
-    $cmd = function (string $command, array $expect) use ($fp, $read): string {
+    $cmd = function ($command, array $expect) use ($fp, $read) {
         if ($command !== '') {
             fwrite($fp, $command . "\r\n");
         }
@@ -121,7 +120,7 @@ function smtp_send(string $from, string $to, string $headers, string $body): boo
     $cmd($ehlo, [250]);
     if ($enc === 'tls') {
         $cmd('STARTTLS', [220]);
-        if (!stream_socket_enable_crypto($fp, true, STREAM_CRYPTO_METHOD_TLS_CLIENT)) {
+        if (!stream_socket_enable_crypto($fp, true, smtp_crypto_method())) {
             throw new RuntimeException('STARTTLS zlyhalo');
         }
         $cmd($ehlo, [250]);
@@ -142,7 +141,7 @@ function smtp_send(string $from, string $to, string $headers, string $body): boo
     return true;
 }
 
-function mail_html_to_text(string $html): string
+function mail_html_to_text($html)
 {
     $html = preg_replace('~<a [^>]*href="([^"]+)"[^>]*>(.*?)</a>~si', '$2 ($1)', $html);
     $html = preg_replace('~</td>\s*<td[^>]*>~i', ': ', $html);
@@ -153,7 +152,7 @@ function mail_html_to_text(string $html): string
 }
 
 /** Zabalí obsah do jednotného HTML šablóny e-mailu. */
-function mail_layout(string $title, string $content): string
+function mail_layout($title, $content)
 {
     $site = e(cfg('site_name'));
     $addr = e(cfg('contact.address'));
@@ -174,4 +173,17 @@ $content
 <tr><td style="background:#0D6FB0;background-image:linear-gradient(135deg,#0D6FB0,#5e2d85);color:#ffffff;padding:16px 28px;font-size:12px">$site · $addr<br>$mail$phone</td></tr>
 </table></td></tr></table></body></html>
 HTML;
+}
+
+/** TLS 1.2/1.1 aj na starom PHP 5.6, kde STREAM_CRYPTO_METHOD_TLS_CLIENT znamená iba TLS 1.0. */
+function smtp_crypto_method()
+{
+    $m = STREAM_CRYPTO_METHOD_TLS_CLIENT;
+    if (defined('STREAM_CRYPTO_METHOD_TLSv1_1_CLIENT')) {
+        $m |= STREAM_CRYPTO_METHOD_TLSv1_1_CLIENT;
+    }
+    if (defined('STREAM_CRYPTO_METHOD_TLSv1_2_CLIENT')) {
+        $m |= STREAM_CRYPTO_METHOD_TLSv1_2_CLIENT;
+    }
+    return $m;
 }

@@ -1,12 +1,11 @@
 <?php
-declare(strict_types=1);
 
 const PHOTO_MAX_BYTES = 8 * 1024 * 1024;
 const PHOTO_SIZE = 600;               // výsledná fotka je štvorec 600×600 px
 const PHOTO_DIR = 'uploads/therapists';
 
 /** URL fotky terapeuta alebo null. */
-function therapist_photo_url(array $t): ?string
+function therapist_photo_url(array $t)
 {
     if (empty($t['photo']) || !is_file(APP_ROOT . '/' . $t['photo'])) {
         return null;
@@ -18,10 +17,10 @@ function therapist_photo_url(array $t): ?string
  * Spracuje nahranú fotku z $_FILES[$field] pre terapeuta.
  * Vracia [cesta|null, chyba|null]. Ak nebol nahraný žiadny súbor, vracia [null, null].
  */
-function therapist_photo_upload(int $therapistId, string $field = 'photo'): array
+function therapist_photo_upload($therapistId, $field = 'photo')
 {
-    $f = $_FILES[$field] ?? null;
-    if (!$f || !is_array($f) || ($f['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+    $f = isset($_FILES[$field]) ? $_FILES[$field] : null;
+    if (!$f || !is_array($f) || (isset($f['error']) ? $f['error'] : UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
         return [null, null];
     }
     if ($f['error'] === UPLOAD_ERR_INI_SIZE || $f['error'] === UPLOAD_ERR_FORM_SIZE || $f['size'] > PHOTO_MAX_BYTES) {
@@ -35,7 +34,7 @@ function therapist_photo_upload(int $therapistId, string $field = 'photo'): arra
     if (!$info || !isset($allowed[$info[2]])) {
         return [null, 'Povolené sú iba obrázky JPG, PNG alebo WEBP.'];
     }
-    if ($info[0] < 100 || $info[1] < 100 || $info[0] * $info[1] > 40_000_000) {
+    if ($info[0] < 100 || $info[1] < 100 || $info[0] * $info[1] > 40000000) {
         return [null, 'Fotka musí mať aspoň 100×100 px a najviac 40 Mpx.'];
     }
 
@@ -46,9 +45,11 @@ function therapist_photo_upload(int $therapistId, string $field = 'photo'): arra
  * Uloží obrázok ako fotku terapeuta (štvorec PHOTO_SIZE, JPG, bez EXIF).
  * Vracia [relatívna cesta|null, chyba|null].
  */
-function photo_store_image(string $path, int $therapistId, ?array $info = null, bool $uploaded = false): array
+function photo_store_image($path, $therapistId, array $info = null, $uploaded = false)
 {
-    $info ??= @getimagesize($path);
+    if ($info === null) {
+        $info = @getimagesize($path);
+    }
     $allowed = [IMAGETYPE_JPEG => 'jpg', IMAGETYPE_PNG => 'png', IMAGETYPE_WEBP => 'webp'];
     if (!$info || !isset($allowed[$info[2]])) {
         return [null, 'Povolené sú iba obrázky JPG, PNG alebo WEBP.'];
@@ -61,11 +62,13 @@ function photo_store_image(string $path, int $therapistId, ?array $info = null, 
 
     // Fotku prekódujeme cez GD (zahodí sa tým aj prípadný škodlivý obsah a EXIF/GPS údaje).
     if (function_exists('imagecreatetruecolor')) {
-        $src = match ($info[2]) {
-            IMAGETYPE_JPEG => @imagecreatefromjpeg($path),
-            IMAGETYPE_PNG  => @imagecreatefrompng($path),
-            IMAGETYPE_WEBP => function_exists('imagecreatefromwebp') ? @imagecreatefromwebp($path) : false,
-        };
+        if ($info[2] === IMAGETYPE_JPEG) {
+            $src = @imagecreatefromjpeg($path);
+        } elseif ($info[2] === IMAGETYPE_PNG) {
+            $src = @imagecreatefrompng($path);
+        } else {
+            $src = function_exists('imagecreatefromwebp') ? @imagecreatefromwebp($path) : false;
+        }
         if (!$src) {
             return [null, 'Obrázok sa nepodarilo spracovať.'];
         }
@@ -96,15 +99,15 @@ function photo_store_image(string $path, int $therapistId, ?array $info = null, 
     return [$rel, null];
 }
 
-function photo_fix_orientation($img, string $path, int $type)
+function photo_fix_orientation($img, $path, $type)
 {
     if ($type !== IMAGETYPE_JPEG || !function_exists('exif_read_data')) {
         return $img;
     }
     $exif = @exif_read_data($path);
-    $angle = match ((int) ($exif['Orientation'] ?? 1)) {
-        3 => 180, 6 => -90, 8 => 90, default => 0,
-    };
+    $angles = [3 => 180, 6 => -90, 8 => 90];
+    $o = (int) (isset($exif['Orientation']) ? $exif['Orientation'] : 1);
+    $angle = isset($angles[$o]) ? $angles[$o] : 0;
     if ($angle) {
         $rotated = imagerotate($img, $angle, 0);
         if ($rotated) {
@@ -116,13 +119,13 @@ function photo_fix_orientation($img, string $path, int $type)
 }
 
 /** Nastaví novú fotku terapeuta (starú zmaže). $rel = '' fotku odstráni. */
-function therapist_photo_set(array $t, string $rel): void
+function therapist_photo_set(array $t, $rel)
 {
     db()->prepare('UPDATE therapists SET photo = ? WHERE id = ?')->execute([$rel, $t['id']]);
-    therapist_photo_delete_file((string) ($t['photo'] ?? ''));
+    therapist_photo_delete_file((string) (isset($t['photo']) ? $t['photo'] : ''));
 }
 
-function therapist_photo_delete_file(string $rel): void
+function therapist_photo_delete_file($rel)
 {
     if ($rel !== '' && str_starts_with($rel, PHOTO_DIR . '/') && !str_contains($rel, '..')) {
         @unlink(APP_ROOT . '/' . $rel);
@@ -130,7 +133,7 @@ function therapist_photo_delete_file(string $rel): void
 }
 
 /** HTML: fotka alebo iniciály. */
-function therapist_avatar_html(array $t, string $class = 'person-photo'): string
+function therapist_avatar_html(array $t, $class = 'person-photo')
 {
     $url = therapist_photo_url($t);
     if ($url) {

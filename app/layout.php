@@ -1,10 +1,9 @@
 <?php
-declare(strict_types=1);
 
 /**
  * Spoločná hlavička. $area: 'public' | 'therapist' | 'admin'
  */
-function page_header(string $title, string $area = 'public', string $active = ''): void
+function page_header($title, $area = 'public', $active = '')
 {
     $GLOBALS['__page_area'] = $area;
     $site = cfg('site_name');
@@ -27,8 +26,8 @@ function page_header(string $title, string $area = 'public', string $active = ''
             'rezervacia.php'     => 'Rezervovať termín',
         ];
     }
-    $nav = match ($area) {
-        'admin' => current_admin() ? [
+    if ($area === 'admin') {
+        $nav = current_admin() ? [
             'admin/index.php'      => 'Prehľad',
             'admin/terapeuti.php'  => 'Terapeuti',
             'admin/terapie.php'    => 'Služby',
@@ -36,20 +35,19 @@ function page_header(string $title, string $area = 'public', string $active = ''
             'admin/dopyty.php'     => 'Dopyty' . (($n = inquiries_new_count()) ? " ($n)" : ''),
             'admin/heslo.php'      => 'Môj účet',
             'admin/odhlasenie.php' => 'Odhlásiť',
-        ] : [$back => 'Späť na web'],
-        'therapist' => current_therapist() ? [
+        ] : [$back => 'Späť na web'];
+    } elseif ($area === 'therapist') {
+        $nav = current_therapist() ? [
             'terapeut/index.php'      => 'Moje termíny',
             'terapeut/rezervacie.php' => 'Rezervácie',
             'terapeut/profil.php'     => 'Profil a heslo',
             'terapeut/odhlasenie.php' => 'Odhlásiť',
-        ] : [$back => 'Späť na web'],
-        default => $publicNav,
-    };
-    $badge = match ($area) {
-        'admin' => 'Administrácia',
-        'therapist' => 'Portál terapeuta',
-        default => '',
-    };
+        ] : [$back => 'Späť na web'];
+    } else {
+        $nav = $publicNav;
+    }
+    $badges = ['admin' => 'Administrácia', 'therapist' => 'Portál terapeuta'];
+    $badge = isset($badges[$area]) ? $badges[$area] : '';
     ?>
 <!doctype html>
 <html lang="sk">
@@ -94,19 +92,19 @@ function page_header(string $title, string $area = 'public', string $active = ''
 }
 
 /** Odkaz v menu: absolútne adresy (web ozdami.sk) nechá tak, ostatné sú v rámci aplikácie. */
-function nav_href(string $href): string
+function nav_href($href)
 {
     return preg_match('#^(https?:)?//#i', $href) ? $href : url($href);
 }
 
-function page_footer(): void
+function page_footer()
 {
     ?>
 </main>
 <?php
     // Rezervácia ako súčasť webu: rovnaká pätička ako na ozdami.sk
     $siteHeader = site_header();
-    if ($siteHeader && !empty($siteHeader['footer']) && ($GLOBALS['__page_area'] ?? '') === 'public') {
+    if ($siteHeader && !empty($siteHeader['footer']) && (isset($GLOBALS['__page_area']) ? $GLOBALS['__page_area'] : '') === 'public') {
         echo site_footer_render($siteHeader), "\n</body>\n</html>\n";
         return;
     }

@@ -9,7 +9,7 @@ if (is_post()) {
     csrf_check();
     if (login_throttled('therapist')) {
         $error = 'Príliš veľa neúspešných pokusov. Skúste to znova o 15 minút.';
-    } elseif (therapist_attempt_login(post('email'), (string) ($_POST['password'] ?? ''))) {
+    } elseif (therapist_attempt_login(post('email'), (string) (isset($_POST['password']) ? $_POST['password'] : ''))) {
         login_clear('therapist');
         redirect('terapeut/index.php');
     } else {

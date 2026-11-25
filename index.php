@@ -36,7 +36,7 @@ page_header('Online rezervácia');
           ['02', 'Terapeut', 'Zvolíte odborníka, ktorý ju u nás vykonáva.'],
           ['03', 'Termín', 'V kalendári vidíte iba skutočne voľné časy.'],
           ['04', 'Potvrdenie', 'E-mail s potvrdením a pripomienka deň vopred.'],
-      ] as [$n, $t, $d]): ?>
+      ] as $step): list($n, $t, $d) = $step; ?>
         <div class="card">
           <div class="kicker" style="margin-bottom:8px"><?= $n ?></div>
           <h3><?= e($t) ?></h3>
@@ -53,7 +53,7 @@ $sections = [
     'therapy'    => ['sluzby', 'section-white', 'Terapie', 'Vyberte si oblasť, o ktorú máte záujem.', 'Programy sú individuálne a prispôsobené potrebám a možnostiam každého dieťaťa.'],
     'diagnostic' => ['diagnostika', '', 'Diagnostika', 'Odborné posúdenie ako prvý krok.', 'Štandardizované diagnostické metodiky, na základe ktorých odporučíme ďalší postup.'],
 ];
-foreach ($sections as $kind => [$anchor, $bg, $kicker, $title, $lead]):
+foreach ($sections as $kind => $sec): list($anchor, $bg, $kicker, $title, $lead) = $sec;
     if (!$groups[$kind] && $kind !== 'therapy') continue; ?>
 <section class="section <?= $bg ?>" id="<?= $anchor ?>">
   <div class="container">
@@ -101,7 +101,7 @@ foreach ($sections as $kind => [$anchor, $bg, $kicker, $title, $lead]):
             <h3><?= e(therapist_full_name($p)) ?></h3>
             <?php if ($p['description']): ?><p class="small"><?= nl2br(e($p['description'])) ?></p><?php endif; ?>
             <div class="tags">
-              <?php foreach ($byTherapist[(int) $p['id']] ?? [] as $th): ?>
+              <?php foreach (isset($byTherapist[(int) $p['id']]) ? $byTherapist[(int) $p['id']] : [] as $th): ?>
                 <span class="tag"><?= e($th['name']) ?></span>
               <?php endforeach; ?>
             </div>

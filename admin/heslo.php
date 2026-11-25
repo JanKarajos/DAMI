@@ -6,8 +6,8 @@ $mustChange = (int) $admin['must_change_password'] === 1;
 $error = null;
 if (is_post()) {
     csrf_check();
-    $current = (string) ($_POST['current'] ?? '');
-    $new = (string) ($_POST['new'] ?? '');
+    $current = (string) (isset($_POST['current']) ? $_POST['current'] : '');
+    $new = (string) (isset($_POST['new']) ? $_POST['new'] : '');
     $username = post('username');
     if (!password_verify($current, $admin['password_hash'])) {
         $error = 'Súčasné heslo nie je správne.';
@@ -15,7 +15,7 @@ if (is_post()) {
         $error = 'Používateľské meno môže obsahovať písmená, čísla a znaky . _ @ - (3–60 znakov).';
     } elseif ($new === '' && $mustChange) {
         $error = 'Nastavte si nové heslo.';
-    } elseif ($new !== '' && ($err = validate_new_password($new, (string) ($_POST['confirm'] ?? '')))) {
+    } elseif ($new !== '' && ($err = validate_new_password($new, (string) (isset($_POST['confirm']) ? $_POST['confirm'] : '')))) {
         $error = $err;
     } elseif ($new !== '' && $new === $current) {
         $error = 'Nové heslo musí byť iné ako súčasné.';

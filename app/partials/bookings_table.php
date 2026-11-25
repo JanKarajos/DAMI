@@ -1,6 +1,6 @@
 <?php
 /** @var array $bookings  @var bool $showTherapist (voliteľné) */
-$showTherapist = $showTherapist ?? false;
+$showTherapist = isset($showTherapist) ? $showTherapist : false;
 if (!$bookings): ?>
   <div class="card center muted">Žiadne rezervácie.</div>
 <?php else: ?>

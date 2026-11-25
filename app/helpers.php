@@ -1,51 +1,65 @@
 <?php
-declare(strict_types=1);
 
-function e(?string $s): string
+function e($s)
 {
     return htmlspecialchars((string) $s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
 /** Relatívna cesta k rootu aplikácie (funguje aj v podpriečinku). */
-function url(string $path = ''): string
+function url($path = '')
 {
     static $base = null;
     if ($base === null) {
-        $docRoot = realpath($_SERVER['DOCUMENT_ROOT'] ?? '') ?: '';
-        $app = realpath(APP_ROOT) ?: APP_ROOT;
-        $base = ($docRoot !== '' && str_starts_with($app, $docRoot))
-            ? str_replace('\\', '/', substr($app, strlen($docRoot)))
-            : '';
+        $base = '';
+        $app = str_replace('\\', '/', realpath(APP_ROOT) ?: APP_ROOT);
+        // 1) podľa spusteného skriptu – spoľahlivé aj na IIS (Windows), kde DOCUMENT_ROOT býva prázdny
+        $script = isset($_SERVER['SCRIPT_FILENAME']) ? str_replace('\\', '/', realpath($_SERVER['SCRIPT_FILENAME']) ?: $_SERVER['SCRIPT_FILENAME']) : '';
+        $name = isset($_SERVER['SCRIPT_NAME']) ? str_replace('\\', '/', $_SERVER['SCRIPT_NAME']) : '';
+        $found = false;
+        if ($script !== '' && $name !== '' && stripos($script, $app . '/') === 0) {
+            $rel = substr($script, strlen($app));                       // napr. /admin/index.php
+            if (strcasecmp(substr($name, -strlen($rel)), $rel) === 0) {
+                $base = substr($name, 0, strlen($name) - strlen($rel));
+                $found = true;
+            }
+        }
+        // 2) podľa DOCUMENT_ROOT
+        if (!$found) {
+            $docRoot = str_replace('\\', '/', realpath(isset($_SERVER['DOCUMENT_ROOT']) ? $_SERVER['DOCUMENT_ROOT'] : '') ?: '');
+            if ($docRoot !== '' && stripos($app, $docRoot) === 0) {
+                $base = substr($app, strlen($docRoot));
+            }
+        }
         $base = rtrim($base, '/');
     }
     return $base . '/' . ltrim($path, '/');
 }
 
 /** Absolútna URL pre e-maily. */
-function abs_url(string $path = ''): string
+function abs_url($path = '')
 {
     return rtrim((string) cfg('base_url'), '/') . '/' . ltrim($path, '/');
 }
 
-function redirect(string $path): never
+function redirect($path)
 {
     header('Location: ' . (preg_match('~^https?://~', $path) ? $path : url($path)));
     exit;
 }
 
-function flash(string $type, string $msg): void
+function flash($type, $msg)
 {
     $_SESSION['flash'][] = ['type' => $type, 'msg' => $msg];
 }
 
-function take_flashes(): array
+function take_flashes()
 {
-    $f = $_SESSION['flash'] ?? [];
+    $f = isset($_SESSION['flash']) ? $_SESSION['flash'] : [];
     unset($_SESSION['flash']);
     return $f;
 }
 
-function csrf_token(): string
+function csrf_token()
 {
     if (empty($_SESSION['csrf'])) {
         $_SESSION['csrf'] = bin2hex(random_bytes(32));
@@ -53,36 +67,36 @@ function csrf_token(): string
     return $_SESSION['csrf'];
 }
 
-function csrf_field(): string
+function csrf_field()
 {
     return '<input type="hidden" name="_csrf" value="' . e(csrf_token()) . '">';
 }
 
-function csrf_check(): void
+function csrf_check()
 {
-    if (empty($_POST) && (int) ($_SERVER['CONTENT_LENGTH'] ?? 0) > 0) {
+    if (empty($_POST) && (int) (isset($_SERVER['CONTENT_LENGTH']) ? $_SERVER['CONTENT_LENGTH'] : 0) > 0) {
         http_response_code(413);
         exit('Odoslané dáta sú príliš veľké (pravdepodobne fotka). Vráťte sa späť a vyberte menší súbor.');
     }
-    $sent = $_POST['_csrf'] ?? ($_SERVER['HTTP_X_CSRF_TOKEN'] ?? '');
+    $sent = isset($_POST['_csrf']) ? $_POST['_csrf'] : (isset($_SERVER['HTTP_X_CSRF_TOKEN']) ? $_SERVER['HTTP_X_CSRF_TOKEN'] : '');
     if (!is_string($sent) || !hash_equals(csrf_token(), $sent)) {
         http_response_code(419);
         exit('Platnosť formulára vypršala. Vráťte sa späť a obnovte stránku.');
     }
 }
 
-function is_post(): bool
+function is_post()
 {
-    return ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST';
+    return (isset($_SERVER['REQUEST_METHOD']) ? $_SERVER['REQUEST_METHOD'] : 'GET') === 'POST';
 }
 
-function post(string $key, string $default = ''): string
+function post($key, $default = '')
 {
-    $v = $_POST[$key] ?? $default;
+    $v = isset($_POST[$key]) ? $_POST[$key] : $default;
     return is_string($v) ? trim($v) : $default;
 }
 
-function json_out($data, int $status = 200): never
+function json_out($data, $status = 200)
 {
     http_response_code($status);
     header('Content-Type: application/json; charset=utf-8');
@@ -90,7 +104,7 @@ function json_out($data, int $status = 200): never
     exit;
 }
 
-function therapist_full_name(array $t): string
+function therapist_full_name(array $t)
 {
     $name = trim(($t['title'] ? $t['title'] . ' ' : '') . $t['first_name'] . ' ' . $t['last_name']);
     return !empty($t['title_after']) ? $name . ', ' . $t['title_after'] : $name;
@@ -101,24 +115,24 @@ const SK_DAYS_SHORT = ['Ne', 'Po', 'Ut', 'St', 'Št', 'Pi', 'So'];
 const SK_MONTHS = ['', 'január', 'február', 'marec', 'apríl', 'máj', 'jún', 'júl', 'august', 'september', 'október', 'november', 'december'];
 
 /** napr. "streda 4. 11. 2026 o 14:00" */
-function fmt_datetime(string $dt): string
+function fmt_datetime($dt)
 {
     $d = new DateTimeImmutable($dt);
     return SK_DAYS[(int) $d->format('w')] . ' ' . $d->format('j. n. Y') . ' o ' . $d->format('H:i');
 }
 
-function fmt_date(string $dt): string
+function fmt_date($dt)
 {
     $d = new DateTimeImmutable($dt);
     return SK_DAYS_SHORT[(int) $d->format('w')] . ' ' . $d->format('j. n. Y');
 }
 
-function fmt_time(string $dt): string
+function fmt_time($dt)
 {
     return (new DateTimeImmutable($dt))->format('H:i');
 }
 
-function random_password(int $len = 10): string
+function random_password($len = 10)
 {
     $chars = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789';
     $out = '';
@@ -129,9 +143,9 @@ function random_password(int $len = 10): string
 }
 
 /** IP adresa návštevníka. Za reverzným proxy (Synology, Docker) sa berie z X-Forwarded-For. */
-function client_ip(): string
+function client_ip()
 {
-    $ip = $_SERVER['REMOTE_ADDR'] ?? 'cli';
+    $ip = isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : 'cli';
     if (!ip_is_trusted_proxy($ip) || empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
         return $ip;
     }
@@ -150,16 +164,16 @@ function client_ip(): string
 }
 
 /** Je požiadavka cez HTTPS (priamo alebo cez dôveryhodné proxy)? */
-function request_is_https(): bool
+function request_is_https()
 {
     if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') {
         return true;
     }
-    return ip_is_trusted_proxy($_SERVER['REMOTE_ADDR'] ?? '')
-        && strtolower((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')) === 'https';
+    return ip_is_trusted_proxy(isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : '')
+        && strtolower((string) (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) ? $_SERVER['HTTP_X_FORWARDED_PROTO'] : '')) === 'https';
 }
 
-function ip_is_trusted_proxy(string $ip): bool
+function ip_is_trusted_proxy($ip)
 {
     foreach ((array) cfg('trusted_proxies', []) as $range) {
         if (ip_in_range($ip, (string) $range)) {
@@ -170,9 +184,9 @@ function ip_is_trusted_proxy(string $ip): bool
 }
 
 /** '10.0.0.5' v '10.0.0.0/8' alebo presná zhoda. Funguje pre IPv4 aj IPv6. */
-function ip_in_range(string $ip, string $range): bool
+function ip_in_range($ip, $range)
 {
-    [$net, $bits] = array_pad(explode('/', $range, 2), 2, null);
+    list($net, $bits) = array_pad(explode('/', $range, 2), 2, null);
     $ipBin = @inet_pton($ip);
     $netBin = @inet_pton($net);
     if ($ipBin === false || $netBin === false || strlen($ipBin) !== strlen($netBin)) {

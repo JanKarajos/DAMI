@@ -3,7 +3,7 @@ require __DIR__ . '/app/bootstrap.php';
 
 $services = therapies_all();
 $byId = array_column($services, null, 'id');
-$selected = (int) ($_POST['therapy_id'] ?? $_GET['terapia'] ?? 0);
+$selected = (int) (isset($_POST['therapy_id']) ? $_POST['therapy_id'] : (isset($_GET['terapia']) ? $_GET['terapia'] : 0));
 if (!isset($byId[$selected])) {
     $selected = 0;
 }
@@ -30,11 +30,11 @@ if (is_post()) {
     if (post('gdpr') === '') $errors[] = 'Je potrebný súhlas so spracovaním osobných údajov.';
     if (!$errors && inquiry_throttled()) $errors[] = 'Odoslali ste príliš veľa správ. Skúste to prosím neskôr alebo nám zavolajte.';
     if (!$errors) {
-        create_inquiry($byId[$selected] ?? null, $d);
+        create_inquiry(isset($byId[$selected]) ? $byId[$selected] : null, $d);
         redirect('kontakt.php?odoslane=1');
     }
 }
-$current = $byId[$selected] ?? null;
+$current = isset($byId[$selected]) ? $byId[$selected] : null;
 $groups = therapies_grouped($services);
 
 page_header('Kontaktný formulár', 'public', 'kontakt.php');

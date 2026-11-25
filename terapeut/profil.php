@@ -15,7 +15,7 @@ if (is_post()) {
         if ($phone !== '' && !preg_match('/^[0-9 +()\/-]{6,}$/', $phone)) {
             $profileError = 'Zadajte platné telefónne číslo.';
         } else {
-            [$photo, $photoErr] = therapist_photo_upload((int) $me['id']);
+            list($photo, $photoErr) = therapist_photo_upload((int) $me['id']);
             if ($photoErr) {
                 $profileError = $photoErr;
             } else {
@@ -33,13 +33,13 @@ if (is_post()) {
     }
 
     if ($action === 'password') {
-        $current = (string) ($_POST['current'] ?? '');
-        $new = (string) ($_POST['new'] ?? '');
+        $current = (string) (isset($_POST['current']) ? $_POST['current'] : '');
+        $new = (string) (isset($_POST['new']) ? $_POST['new'] : '');
         if (!password_verify($current, $me['password_hash'])) {
             $error = 'Súčasné heslo nie je správne.';
         } elseif ($current === $new) {
             $error = 'Nové heslo musí byť iné ako súčasné.';
-        } elseif ($err = validate_new_password($new, (string) ($_POST['confirm'] ?? ''))) {
+        } elseif ($err = validate_new_password($new, (string) (isset($_POST['confirm']) ? $_POST['confirm'] : ''))) {
             $error = $err;
         } else {
             db()->prepare('UPDATE therapists SET password_hash = ?, must_change_password = 0 WHERE id = ?')
@@ -50,7 +50,8 @@ if (is_post()) {
         }
     }
 }
-$therapies = therapies_by_therapist()[(int) $me['id']] ?? [];
+$byT = therapies_by_therapist();
+$therapies = isset($byT[(int) $me['id']]) ? $byT[(int) $me['id']] : [];
 $photoUrl = therapist_photo_url($me);
 
 page_header('Profil a heslo', 'therapist', 'terapeut/profil.php');

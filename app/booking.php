@@ -1,54 +1,62 @@
 <?php
-declare(strict_types=1);
 
 /* ================= Čítanie dát ================= */
 
-function therapies_all(bool $onlyActive = true): array
+function therapies_all($onlyActive = true)
 {
     $sql = 'SELECT * FROM therapies' . ($onlyActive ? ' WHERE active = 1' : '') . ' ORDER BY sort_order, name';
     return db()->query($sql)->fetchAll();
 }
 
-const THERAPY_KINDS = ['therapy' => 'Terapia', 'diagnostic' => 'Diagnostika'];
-const BOOKING_MODES = ['online' => 'Online rezervácia v kalendári', 'inquiry' => 'Iba kontaktný formulár'];
-
-function therapy_is_online(array $t): bool
+function therapy_kinds()
 {
-    return ($t['booking_mode'] ?? 'online') === 'online';
+    return ['therapy' => 'Terapia', 'diagnostic' => 'Diagnostika'];
+}
+
+function booking_modes()
+{
+    return ['online' => 'Online rezervácia v kalendári', 'inquiry' => 'Iba kontaktný formulár'];
+}
+
+function therapy_is_online(array $t)
+{
+    return (isset($t['booking_mode']) ? $t['booking_mode'] : 'online') === 'online';
 }
 
 /** Rozdelí služby na ['therapy' => [...], 'diagnostic' => [...]]. */
-function therapies_grouped(array $list): array
+function therapies_grouped(array $list)
 {
-    $out = array_fill_keys(array_keys(THERAPY_KINDS), []);
+    $kinds = therapy_kinds();
+    $out = array_fill_keys(array_keys($kinds), []);
     foreach ($list as $t) {
-        $out[isset(THERAPY_KINDS[$t['kind'] ?? '']) ? $t['kind'] : 'therapy'][] = $t;
+        $k = isset($t['kind']) ? $t['kind'] : '';
+        $out[isset($kinds[$k]) ? $k : 'therapy'][] = $t;
     }
     return $out;
 }
 
-function therapy_find(int $id): ?array
+function therapy_find($id)
 {
     $s = db()->prepare('SELECT * FROM therapies WHERE id = ?');
     $s->execute([$id]);
     return $s->fetch() ?: null;
 }
 
-function therapist_find(int $id): ?array
+function therapist_find($id)
 {
     $s = db()->prepare('SELECT * FROM therapists WHERE id = ?');
     $s->execute([$id]);
     return $s->fetch() ?: null;
 }
 
-function therapists_all(bool $onlyActive = true): array
+function therapists_all($onlyActive = true)
 {
     $sql = 'SELECT * FROM therapists' . ($onlyActive ? ' WHERE active = 1' : '') . ' ORDER BY sort_order, last_name, first_name';
     return db()->query($sql)->fetchAll();
 }
 
 /** Aktívni terapeuti vykonávajúci danú terapiu. */
-function therapists_for_therapy(int $therapyId): array
+function therapists_for_therapy($therapyId)
 {
     $s = db()->prepare(
         'SELECT t.* FROM therapists t
@@ -61,7 +69,7 @@ function therapists_for_therapy(int $therapyId): array
 }
 
 /** [therapist_id => [therapy, ...]] */
-function therapies_by_therapist(bool $onlyActive = true): array
+function therapies_by_therapist($onlyActive = true)
 {
     $sql = 'SELECT tt.therapist_id, th.* FROM therapist_therapy tt JOIN therapies th ON th.id = tt.therapy_id'
         . ($onlyActive ? ' WHERE th.active = 1' : '') . ' ORDER BY th.sort_order, th.name';
@@ -72,14 +80,14 @@ function therapies_by_therapist(bool $onlyActive = true): array
     return $out;
 }
 
-function therapy_ids_of_therapist(int $therapistId): array
+function therapy_ids_of_therapist($therapistId)
 {
     $s = db()->prepare('SELECT therapy_id FROM therapist_therapy WHERE therapist_id = ?');
     $s->execute([$therapistId]);
     return array_map('intval', $s->fetchAll(PDO::FETCH_COLUMN));
 }
 
-function therapist_does_therapy(int $therapistId, int $therapyId): bool
+function therapist_does_therapy($therapistId, $therapyId)
 {
     $s = db()->prepare("SELECT 1 FROM therapist_therapy tt JOIN therapies th ON th.id = tt.therapy_id
                         WHERE tt.therapist_id = ? AND tt.therapy_id = ? AND th.active = 1 AND th.booking_mode = 'online'");
@@ -87,7 +95,7 @@ function therapist_does_therapy(int $therapistId, int $therapyId): bool
     return (bool) $s->fetchColumn();
 }
 
-function earliest_bookable(): string
+function earliest_bookable()
 {
     return date('Y-m-d H:i', time() + (int) cfg('min_booking_notice_hours') * 3600);
 }
@@ -95,7 +103,7 @@ function earliest_bookable(): string
 /**
  * Voľné sloty terapeuta pre danú terapiu v intervale [from, to) (dátumy 'Y-m-d').
  */
-function free_slots(int $therapistId, int $therapyId, string $from, string $to): array
+function free_slots($therapistId, $therapyId, $from, $to)
 {
     $horizon = date('Y-m-d', strtotime('+' . (int) cfg('booking_horizon_days') . ' days'));
     if ($to > $horizon) {
@@ -117,7 +125,7 @@ function free_slots(int $therapistId, int $therapyId, string $from, string $to):
     return $s->fetchAll();
 }
 
-function booking_find_by_token(string $token): ?array
+function booking_find_by_token($token)
 {
     $s = db()->prepare(
         'SELECT b.*, t.title, t.title_after, t.first_name, t.last_name, t.email AS therapist_email, t.phone AS therapist_phone
@@ -127,7 +135,7 @@ function booking_find_by_token(string $token): ?array
     return $s->fetch() ?: null;
 }
 
-function booking_find(int $id): ?array
+function booking_find($id)
 {
     $s = db()->prepare(
         'SELECT b.*, t.title, t.title_after, t.first_name, t.last_name, t.email AS therapist_email, t.phone AS therapist_phone
@@ -142,7 +150,7 @@ function booking_find(int $id): ?array
 /**
  * Vytvorí rezerváciu. Vracia [booking|null, chyba|null].
  */
-function create_booking(int $slotId, int $therapyId, array $d): array
+function create_booking($slotId, $therapyId, array $d)
 {
     $pdo = db();
     $therapy = therapy_find($therapyId);
@@ -188,7 +196,7 @@ function create_booking(int $slotId, int $therapyId, array $d): array
     } catch (DomainException $ex) {
         $pdo->exec('ROLLBACK');
         return [null, $ex->getMessage()];
-    } catch (Throwable $ex) {
+    } catch (Exception $ex) {
         $pdo->exec('ROLLBACK');
         throw $ex;
     }
@@ -198,7 +206,7 @@ function create_booking(int $slotId, int $therapyId, array $d): array
     return [$booking, null];
 }
 
-function cancel_booking(array $booking, string $by, bool $notify = true): void
+function cancel_booking(array $booking, $by, $notify = true)
 {
     db()->prepare("UPDATE bookings SET status = 'cancelled', cancelled_by = ? WHERE id = ? AND status = 'confirmed'")
         ->execute([$by, $booking['id']]);
@@ -207,7 +215,7 @@ function cancel_booking(array $booking, string $by, bool $notify = true): void
     }
 }
 
-function can_client_cancel(array $booking): bool
+function can_client_cancel(array $booking)
 {
     return $booking['status'] === 'confirmed'
         && strtotime($booking['starts_at']) - time() >= (int) cfg('min_cancel_notice_hours') * 3600;
@@ -215,7 +223,7 @@ function can_client_cancel(array $booking): bool
 
 /* ================= E-maily ================= */
 
-function booking_details_html(array $b): string
+function booking_details_html(array $b)
 {
     $rows = [
         'Terapia'  => $b['therapy_name'],
@@ -238,9 +246,9 @@ function booking_details_html(array $b): string
     return $html . '</table>';
 }
 
-function google_calendar_link(array $b): string
+function google_calendar_link(array $b)
 {
-    $fmt = fn(string $dt) => (new DateTimeImmutable($dt))->setTimezone(new DateTimeZone('UTC'))->format('Ymd\THis\Z');
+    $fmt = function ($dt) { $d = new DateTimeImmutable($dt); return $d->setTimezone(new DateTimeZone('UTC'))->format('Ymd\THis\Z'); };
     return 'https://calendar.google.com/calendar/render?' . http_build_query([
         'action'   => 'TEMPLATE',
         'text'     => $b['therapy_name'] . ' – ' . cfg('site_short'),
@@ -250,14 +258,14 @@ function google_calendar_link(array $b): string
     ]);
 }
 
-function mail_button(string $href, string $label, string $color = '#0D6FB0'): string
+function mail_button($href, $label, $color = '#0D6FB0')
 {
     return '<a href="' . e($href) . '" style="display:inline-block;background:' . $color
         . ';color:#ffffff;text-decoration:none;padding:10px 18px;border-radius:24px;font-weight:bold;margin:4px 6px 4px 0">'
         . e($label) . '</a>';
 }
 
-function mail_booking_created(array $b): void
+function mail_booking_created(array $b)
 {
     $manage = abs_url('rezervacia-detail.php?t=' . $b['token']);
     $cancelInfo = (int) cfg('min_cancel_notice_hours');
@@ -285,9 +293,10 @@ function mail_booking_created(array $b): void
     }
 }
 
-function mail_booking_cancelled(array $b, string $by): void
+function mail_booking_cancelled(array $b, $by)
 {
-    $who = ['client' => 'klient', 'therapist' => 'terapeut', 'admin' => 'administrátor'][$by] ?? $by;
+    $whoMap = ['client' => 'klient', 'therapist' => 'terapeut', 'admin' => 'administrátor'];
+    $who = isset($whoMap[$by]) ? $whoMap[$by] : $by;
     $client = mail_layout('Rezervácia zrušená', '
         <p>Dobrý deň, ' . e($b['client_name']) . ',</p>
         <p>nasledujúca rezervácia bola zrušená (zrušil: ' . e($who) . '):</p>'
@@ -301,7 +310,7 @@ function mail_booking_cancelled(array $b, string $by): void
     send_mail($b['therapist_email'], 'Zrušená rezervácia: ' . fmt_datetime($b['starts_at']), $staff);
 }
 
-function mail_reminder(array $b): bool
+function mail_reminder(array $b)
 {
     $html = mail_layout('Pripomienka termínu', '
         <p>Dobrý deň, ' . e($b['client_name']) . ',</p>
@@ -314,7 +323,7 @@ function mail_reminder(array $b): bool
 }
 
 /** Odošle pripomienky pre termíny v najbližších X hodinách. Vracia počet odoslaných. */
-function send_due_reminders(): int
+function send_due_reminders()
 {
     $now = date('Y-m-d H:i');
     $until = date('Y-m-d H:i', time() + (int) cfg('reminder_hours') * 3600);
@@ -345,7 +354,7 @@ function send_due_reminders(): int
     return $sent;
 }
 
-function maybe_run_pseudo_cron(): void
+function maybe_run_pseudo_cron()
 {
     try {
         $last = (int) setting_get('pseudo_cron_last', '0');
@@ -354,7 +363,7 @@ function maybe_run_pseudo_cron(): void
         }
         setting_set('pseudo_cron_last', (string) time());
         send_due_reminders();
-    } catch (Throwable $ex) {
+    } catch (Exception $ex) {
         error_log('[DAMI cron] ' . $ex->getMessage());
     }
 }
@@ -362,7 +371,7 @@ function maybe_run_pseudo_cron(): void
 /* ================= Správa slotov (terapeut) ================= */
 
 /** Pridá voľný slot. Vracia null pri úspechu, inak text chyby. */
-function slot_add(int $therapistId, string $start, string $end, ?int $therapyId, string $note = ''): ?string
+function slot_add($therapistId, $start, $end, $therapyId, $note = '')
 {
     if ($end <= $start) {
         return 'Koniec musí byť po začiatku.';
@@ -381,7 +390,7 @@ function slot_add(int $therapistId, string $start, string $end, ?int $therapyId,
 }
 
 /** Zmaže slot terapeuta, len ak nemá aktívnu rezerváciu. */
-function slot_delete(int $therapistId, int $slotId): bool
+function slot_delete($therapistId, $slotId)
 {
     $s = db()->prepare(
         "DELETE FROM slots WHERE id = ? AND therapist_id = ?
@@ -392,7 +401,7 @@ function slot_delete(int $therapistId, int $slotId): bool
 }
 
 /** Sloty terapeuta vrátane info o rezervácii. */
-function therapist_slots(int $therapistId, string $from, string $to): array
+function therapist_slots($therapistId, $from, $to)
 {
     $s = db()->prepare(
         "SELECT s.*, th.name AS therapy_only,

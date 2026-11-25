@@ -3,9 +3,9 @@ require dirname(__DIR__) . '/app/bootstrap.php';
 require_admin();
 
 $therapies = therapies_all(false);
-$therapyIds = array_map(fn($t) => (int) $t['id'], $therapies);
+$therapyIds = array_map(function ($t) { return (int) $t['id']; }, $therapies);
 
-function send_credentials_mail(array $t, string $password, bool $isNew): bool
+function send_credentials_mail(array $t, $password, $isNew)
 {
     $html = mail_layout($isNew ? 'Prístup do rezervačného systému' : 'Nové heslo do rezervačného systému', '
         <p>Dobrý deň, ' . e(therapist_full_name($t)) . ',</p>
@@ -38,14 +38,14 @@ if (is_post()) {
             'active'      => post('active') === '1' ? 1 : 0,
             'sort_order'  => (int) post('sort_order'),
         ];
-        $selected = array_values(array_intersect(array_map('intval', (array) ($_POST['therapies'] ?? [])), $therapyIds));
+        $selected = array_values(array_intersect(array_map('intval', (array) (isset($_POST['therapies']) ? $_POST['therapies'] : [])), $therapyIds));
         $errors = [];
         if ($d['first_name'] === '' || $d['last_name'] === '') $errors[] = 'Meno a priezvisko sú povinné.';
         if (!filter_var($d['email'], FILTER_VALIDATE_EMAIL)) $errors[] = 'Zadajte platný e-mail.';
         $s = db()->prepare('SELECT 1 FROM therapists WHERE email = ? AND id != ?');
         $s->execute([$d['email'], $id]);
         if ($s->fetchColumn()) $errors[] = 'Terapeut s týmto e-mailom už existuje.';
-        $password = (string) ($_POST['password'] ?? '');
+        $password = (string) (isset($_POST['password']) ? $_POST['password'] : '');
         if ($password !== '' && mb_strlen($password) < 8) $errors[] = 'Heslo musí mať aspoň 8 znakov.';
 
         if ($errors) {
@@ -57,7 +57,7 @@ if (is_post()) {
         $pdo = db();
         $pdo->beginTransaction();
         if ($id) {
-            $cols = implode(', ', array_map(fn($k) => "$k = :$k", array_keys($d)));
+            $cols = implode(', ', array_map(function ($k) { return "$k = :$k"; }, array_keys($d)));
             $pdo->prepare("UPDATE therapists SET $cols WHERE id = :id")->execute($d + ['id' => $id]);
         } else {
             $password = $password !== '' ? $password : random_password();
@@ -75,7 +75,7 @@ if (is_post()) {
 
         // Fotka (nahranie / odstránenie)
         $t = therapist_find($id);
-        [$photo, $photoErr] = therapist_photo_upload($id);
+        list($photo, $photoErr) = therapist_photo_upload($id);
         if ($photoErr) {
             flash('error', $photoErr);
         } elseif ($photo) {
@@ -105,7 +105,7 @@ if (is_post()) {
             flash('error', 'Najprv doplňte skutočný e-mail terapeuta (slúži na prihlásenie) a uložte zmeny.');
             redirect('admin/terapeuti.php?upravit=' . $id);
         }
-        $password = (string) ($_POST['new_password'] ?? '');
+        $password = (string) (isset($_POST['new_password']) ? $_POST['new_password'] : '');
         if ($password !== '' && mb_strlen($password) < 8) {
             flash('error', 'Heslo musí mať aspoň 8 znakov.');
             redirect('admin/terapeuti.php?upravit=' . $id);
@@ -140,12 +140,12 @@ if (is_post()) {
 }
 
 /* ---------- Zobrazenie ---------- */
-$editId = (int) ($_GET['upravit'] ?? 0);
+$editId = (int) (isset($_GET['upravit']) ? $_GET['upravit'] : 0);
 $isNew = isset($_GET['novy']);
 $editing = $editId ? therapist_find($editId) : null;
-$old = $_SESSION['form_old'] ?? null;
+$old = isset($_SESSION['form_old']) ? $_SESSION['form_old'] : null;
 unset($_SESSION['form_old']);
-$credentials = $_SESSION['credentials'] ?? null;
+$credentials = isset($_SESSION['credentials']) ? $_SESSION['credentials'] : null;
 unset($_SESSION['credentials']);
 
 page_header('Terapeuti', 'admin', 'admin/terapeuti.php');
@@ -165,21 +165,21 @@ page_header('Terapeuti', 'admin', 'admin/terapeuti.php');
 <?php endif; ?>
 
 <?php if ($editing || $isNew):
-    $v = $old ?? ($editing ?: ['title' => '', 'title_after' => '', 'first_name' => '', 'last_name' => '', 'email' => '', 'phone' => '', 'description' => '', 'position' => '', 'active' => 1, 'sort_order' => 0]);
-    $checked = $old ? array_map('intval', (array) ($old['therapies'] ?? [])) : ($editing ? therapy_ids_of_therapist((int) $editing['id']) : []);
+    $v = isset($old) ? $old : ($editing ?: ['title' => '', 'title_after' => '', 'first_name' => '', 'last_name' => '', 'email' => '', 'phone' => '', 'description' => '', 'position' => '', 'active' => 1, 'sort_order' => 0]);
+    $checked = $old ? array_map('intval', (array) (isset($old['therapies']) ? $old['therapies'] : [])) : ($editing ? therapy_ids_of_therapist((int) $editing['id']) : []);
 ?>
   <p><a href="<?= e(url('admin/terapeuti.php')) ?>">← späť na zoznam</a></p>
   <div class="dash-grid" style="grid-template-columns:minmax(0,2fr) minmax(0,1fr)">
     <form method="post" class="card" enctype="multipart/form-data">
       <?= csrf_field() ?>
       <input type="hidden" name="action" value="save">
-      <input type="hidden" name="id" value="<?= (int) ($editing['id'] ?? 0) ?>">
+      <input type="hidden" name="id" value="<?= (int) (isset($editing['id']) ? $editing['id'] : 0) ?>">
       <h2><?= $editing ? 'Upraviť: ' . e(therapist_full_name($editing)) : 'Nový terapeut' ?></h2>
       <div class="form-grid">
         <div class="form-row"><label>Titul</label><input type="text" name="title" value="<?= e($v['title']) ?>" placeholder="napr. Mgr., PhDr."></div>
         <div class="form-row"><label class="required">Meno</label><input type="text" name="first_name" required value="<?= e($v['first_name']) ?>"></div>
         <div class="form-row"><label class="required">Priezvisko</label><input type="text" name="last_name" required value="<?= e($v['last_name']) ?>"></div>
-        <div class="form-row"><label>Titul za menom</label><input type="text" name="title_after" value="<?= e($v['title_after'] ?? '') ?>" placeholder="napr. PhD., BCBA"></div>
+        <div class="form-row"><label>Titul za menom</label><input type="text" name="title_after" value="<?= e(isset($v['title_after']) ? $v['title_after'] : '') ?>" placeholder="napr. PhD., BCBA"></div>
         <div class="form-row"><label class="required">E-mail (slúži aj na prihlásenie)</label><input type="email" name="email" required value="<?= e($v['email']) ?>">
           <?php if (is_placeholder_email((string) $v['email'])): ?><div class="help" style="color:var(--rose)">⚠ Zástupná adresa – doplňte skutočný e-mail terapeuta, potom mu nastavte heslo.</div><?php endif; ?></div>
         <div class="form-row"><label>Telefón</label><input type="tel" name="phone" value="<?= e($v['phone']) ?>"></div>
@@ -258,7 +258,7 @@ page_header('Terapeuti', 'admin', 'admin/terapeuti.php');
           <td style="display:flex;align-items:center"><?= therapist_avatar_html($t, 'thumb') ?><strong><?= e(therapist_full_name($t)) ?></strong></td>
           <td><?= e($t['position']) ?></td>
           <td class="small"><?php if (is_placeholder_email($t['email'])): ?><span class="status status-booked">doplňte e-mail</span><?php else: ?><?= e($t['email']) ?><?php endif; ?><br><?= e($t['phone']) ?></td>
-          <td class="small"><?= e(implode(', ', array_column($map[(int) $t['id']] ?? [], 'name'))) ?: '<span class="muted">—</span>' ?></td>
+          <td class="small"><?= e(implode(', ', array_column(isset($map[(int) $t['id']]) ? $map[(int) $t['id']] : [], 'name'))) ?: '<span class="muted">—</span>' ?></td>
           <td>
             <span class="status <?= $t['active'] ? 'status-free' : 'status-cancelled' ?>"><?= $t['active'] ? 'Aktívny' : 'Neaktívny' ?></span>
             <?php if ((int) $t['must_change_password']): ?><div class="small muted">čaká na zmenu hesla</div><?php endif; ?>

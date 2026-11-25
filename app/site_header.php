@@ -1,5 +1,4 @@
 <?php
-declare(strict_types=1);
 
 /*
  * Horné menu hlavného webu ozdami.sk v rezervácii.
@@ -13,7 +12,7 @@ declare(strict_types=1);
  */
 
 /** Vráti ['html' => hlavička, 'css' => [url štýlov]] alebo null, ak sa hlavička nedá načítať. */
-function site_header(): ?array
+function site_header()
 {
     static $result = false;
     if ($result !== false) {
@@ -87,7 +86,7 @@ function site_header(): ?array
     return $result;
 }
 
-function site_header_abs(string $href, string $main): string
+function site_header_abs($href, $main)
 {
     if ($href === '' || preg_match('#^([a-z][a-z0-9+.-]*:|//)#i', $href)) {
         return $href;                                // https:, mailto:, tel:, //cdn…
@@ -100,7 +99,7 @@ function site_header_abs(string $href, string $main): string
 }
 
 /** Obsah súboru hlavného webu: lokálne z nadradeného priečinka, inak HTTP (s cache). */
-function site_header_source(string $file): ?string
+function site_header_source($file)
 {
     $file = ltrim((string) parse_url($file, PHP_URL_PATH), '/');
     if ($file === '' || str_contains($file, '..')) {
@@ -124,7 +123,7 @@ function site_header_source(string $file): ?string
 }
 
 /** CSS webu upravené pre Shadow DOM (:root → :host). */
-function site_header_css(string $file): ?string
+function site_header_css($file)
 {
     $css = site_header_source($file);
     if ($css === null) {
@@ -135,11 +134,11 @@ function site_header_css(string $file): ?string
     $base = rtrim((string) cfg('main_site_url'), '/') . '/' . ltrim(dirname('/' . ltrim($file, '/')), '/');
     $base = rtrim($base, '/') . '/';
     return preg_replace_callback('/url\(\s*([\'"]?)(?!data:|https?:|\/\/|#)([^\'")]+)\1\s*\)/i',
-        fn($m) => 'url(' . $m[1] . site_header_abs($m[2], $base) . $m[1] . ')', $css);
+        function ($m) use ($base) { return 'url(' . $m[1] . site_header_abs($m[2], $base) . $m[1] . ')'; }, $css);
 }
 
 /** Spoločný začiatok Shadow DOM: štýly webu + základ, ktorý web nastavuje na <body>. */
-function site_part_styles(array $h): string
+function site_part_styles(array $h)
 {
     $links = '';
     foreach ($h['css'] as $href) {
@@ -150,7 +149,7 @@ function site_part_styles(array $h): string
 }
 
 /** Vloží časť webu (hlavičku alebo pätičku) do Shadow DOM. $js beží s premennou root. */
-function site_part_render(string $id, string $html, array $h, string $js = ''): string
+function site_part_render($id, $html, array $h, $js = '')
 {
     return '<div id="' . $id . '-host"></div>'
         . '<template id="' . $id . '-tpl">' . site_part_styles($h) . $html . '</template>'
@@ -160,7 +159,7 @@ function site_part_render(string $id, string $html, array $h, string $js = ''): 
 }
 
 /** Hlavička webu – vkladá sa hneď za <body>. */
-function site_header_render(array $h): string
+function site_header_render(array $h)
 {
     return site_part_render('site-header', $h['html'], $h,
         'var header=root.querySelector("[data-header]")||root.querySelector("header"),toggle=root.querySelector("[data-menu-toggle]"),menu=root.querySelector("[data-menu]");'
@@ -172,7 +171,7 @@ function site_header_render(array $h): string
 }
 
 /** Pätička webu – vkladá sa namiesto pätičky aplikácie. */
-function site_footer_render(array $h): string
+function site_footer_render(array $h)
 {
     return site_part_render('site-footer', (string) $h['footer'], $h);
 }

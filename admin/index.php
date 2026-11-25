@@ -14,7 +14,7 @@ if (is_post() && post('action') === 'matrix') {
     $pdo->beginTransaction();
     $pdo->exec('DELETE FROM therapist_therapy');
     $ins = $pdo->prepare('INSERT INTO therapist_therapy (therapist_id, therapy_id) VALUES (?, ?)');
-    foreach ((array) ($_POST['m'] ?? []) as $tid => $ths) {
+    foreach ((array) (isset($_POST['m']) ? $_POST['m'] : []) as $tid => $ths) {
         if (!in_array((int) $tid, array_map('intval', $validT), true)) continue;
         foreach ((array) $ths as $thid => $_) {
             if (in_array((int) $thid, array_map('intval', $validTh), true)) {
@@ -28,7 +28,7 @@ if (is_post() && post('action') === 'matrix') {
 }
 
 $now = date('Y-m-d H:i');
-$q = fn(string $sql, array $p = []) => (function () use ($sql, $p) { $s = db()->prepare($sql); $s->execute($p); return $s->fetchColumn(); })();
+$q = function ($sql, array $p = []) { $s = db()->prepare($sql); $s->execute($p); return $s->fetchColumn(); };
 $stats = [
     'upcoming' => $q("SELECT COUNT(*) FROM bookings WHERE status='confirmed' AND starts_at >= ?", [$now]),
     'free'     => $q("SELECT COUNT(*) FROM slots s WHERE s.starts_at >= ? AND NOT EXISTS (SELECT 1 FROM bookings b WHERE b.slot_id=s.id AND b.status='confirmed')", [$now]),

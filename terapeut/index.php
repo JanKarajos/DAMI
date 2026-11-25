@@ -3,14 +3,15 @@ require dirname(__DIR__) . '/app/bootstrap.php';
 $me = require_therapist();
 $myId = (int) $me['id'];
 
-$myAllTherapies = therapies_by_therapist()[$myId] ?? [];
+$byT = therapies_by_therapist();
+$myAllTherapies = isset($byT[$myId]) ? $byT[$myId] : [];
 // Do kalendára patria len služby s online rezerváciou (napr. ABA a INPP idú cez kontaktný formulár).
 $myTherapies = array_values(array_filter($myAllTherapies, 'therapy_is_online'));
 $defaultDuration = $myTherapies ? (int) $myTherapies[0]['duration_min'] : 60;
-$myTherapyIds = array_map(fn($t) => (int) $t['id'], $myTherapies);
+$myTherapyIds = array_map(function ($t) { return (int) $t['id']; }, $myTherapies);
 
-$validDate = fn(string $d) => (bool) preg_match('/^\d{4}-\d{2}-\d{2}$/', $d) && strtotime($d) !== false;
-$validTime = fn(string $t) => (bool) preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $t);
+$validDate = function ($d) { return (bool) preg_match('/^\d{4}-\d{2}-\d{2}$/', $d) && strtotime($d) !== false; };
+$validTime = function ($t) { return (bool) preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $t); };
 
 if (is_post()) {
     csrf_check();
@@ -42,7 +43,7 @@ if (is_post()) {
         $tTo = post('time_to');
         $dur = max(10, min(480, (int) post('duration')));
         $gap = max(0, min(240, (int) post('gap')));
-        $weekdays = array_map('intval', (array) ($_POST['weekdays'] ?? []));
+        $weekdays = array_map('intval', (array) (isset($_POST['weekdays']) ? $_POST['weekdays'] : []));
         if (!$validDate($from) || !$validDate($to) || !$validTime($tFrom) || !$validTime($tTo) || $to < $from || $tTo <= $tFrom || !$weekdays) {
             flash('error', 'Skontrolujte obdobie, časový rozsah a vyberte aspoň jeden deň v týždni.');
             redirect('terapeut/index.php');
@@ -75,7 +76,7 @@ if (is_post()) {
         // Jednotlivé tlačidlo "Zmazať" má prednosť pred zaškrtnutými položkami.
         $ids = post('slot_id') !== ''
             ? [(int) post('slot_id')]
-            : array_map('intval', (array) ($_POST['slot_ids'] ?? []));
+            : array_map('intval', (array) (isset($_POST['slot_ids']) ? $_POST['slot_ids'] : []));
         $n = 0;
         foreach (array_unique($ids) as $id) {
             $n += slot_delete($myId, $id) ? 1 : 0;
@@ -86,7 +87,7 @@ if (is_post()) {
 }
 
 // Zobrazenie: 4 týždne od zvoleného dňa
-$fromDate = (string) ($_GET['od'] ?? date('Y-m-d'));
+$fromDate = (string) (isset($_GET['od']) ? $_GET['od'] : date('Y-m-d'));
 if (!$validDate($fromDate)) {
     $fromDate = date('Y-m-d');
 }
@@ -228,7 +229,7 @@ page_header('Moje termíny', 'therapist', 'terapeut/index.php');
 </section>
 <?php page_footer();
 
-function therapy_select(array $myTherapies): string
+function therapy_select(array $myTherapies)
 {
     $h = '<select name="therapy_id"><option value="">Ktorákoľvek moja terapia</option>';
     foreach ($myTherapies as $t) {

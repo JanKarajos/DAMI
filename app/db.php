@@ -1,9 +1,8 @@
 <?php
-declare(strict_types=1);
 
 const PLACEHOLDER_EMAIL_DOMAIN = 'doplnte-email.invalid';
 
-function db(): PDO
+function db()
 {
     static $pdo = null;
     if ($pdo !== null) {
@@ -25,7 +24,7 @@ function db(): PDO
     return $pdo;
 }
 
-function migrate(PDO $pdo): void
+function migrate(PDO $pdo)
 {
     $version = (int) $pdo->query('PRAGMA user_version')->fetchColumn();
     if ($version < 1) {
@@ -56,11 +55,11 @@ function migrate(PDO $pdo): void
  * v4: typ služby (terapia / diagnostika), spôsob objednania (online kalendár / kontaktný formulár)
  * a tabuľka dopytov z kontaktného formulára.
  */
-function migrate_v4(PDO $pdo): void
+function migrate_v4(PDO $pdo)
 {
     $pdo->exec("ALTER TABLE therapies ADD COLUMN kind TEXT NOT NULL DEFAULT 'therapy'");          // therapy | diagnostic
     $pdo->exec("ALTER TABLE therapies ADD COLUMN booking_mode TEXT NOT NULL DEFAULT 'online'");   // online | inquiry
-    $pdo->exec(<<<SQL
+    $pdo->exec(<<<'SQL'
     CREATE TABLE IF NOT EXISTS inquiries (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         therapy_id INTEGER NULL REFERENCES therapies(id) ON DELETE SET NULL,
@@ -75,7 +74,8 @@ function migrate_v4(PDO $pdo): void
         created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
     );
     CREATE INDEX IF NOT EXISTS idx_inquiries_created ON inquiries(created_at);
-    SQL);
+SQL
+    );
     // INPP – iba kontaktný formulár, ADOS-2 – diagnostika
     $pdo->exec("UPDATE therapies SET booking_mode = 'inquiry' WHERE name LIKE 'INPP%'");
     $pdo->exec("UPDATE therapies SET kind = 'diagnostic' WHERE name LIKE '%ADOS%'");
@@ -83,7 +83,7 @@ function migrate_v4(PDO $pdo): void
 }
 
 /** Pridá tím OZ DAMI (len tých, ktorí ešte v databáze nie sú). */
-function seed_team(PDO $pdo): void
+function seed_team(PDO $pdo)
 {
     $team = require APP_ROOT . '/app/seed/team.php';
     $exists = $pdo->prepare('SELECT 1 FROM therapists WHERE first_name = ? AND last_name = ?');
@@ -116,7 +116,7 @@ function seed_team(PDO $pdo): void
         }
         $src = APP_ROOT . '/app/seed/team/' . $m['slug'] . '.jpg';
         if (is_file($src) && function_exists('photo_store_image')) {
-            [$rel] = photo_store_image($src, $id);
+            list($rel) = photo_store_image($src, $id);
             if ($rel) {
                 $photo->execute([$rel, $id]);
             }
@@ -124,10 +124,10 @@ function seed_team(PDO $pdo): void
     }
 }
 
-function migrate_v1(PDO $pdo): void
+function migrate_v1(PDO $pdo)
 {
 
-    $pdo->exec(<<<SQL
+    $pdo->exec(<<<'SQL'
     CREATE TABLE IF NOT EXISTS admins (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT NOT NULL UNIQUE,
@@ -217,7 +217,8 @@ function migrate_v1(PDO $pdo): void
         area TEXT NOT NULL,
         created_at INTEGER NOT NULL
     );
-    SQL);
+SQL
+    );
 
     // Úvodné dáta: admin + terapie uvedené na ozdami.sk
     $stmt = $pdo->prepare('INSERT INTO admins (username, password_hash, must_change_password) VALUES (?, ?, 1)');
@@ -235,14 +236,15 @@ function migrate_v1(PDO $pdo): void
         ['Diagnostika ADOS-2',
          'Autism Diagnostic Observation Schedule – Second Edition: štandardizovaná observačná metodika na odborné posúdenie prejavov súvisiacich s poruchou autistického spektra (PAS). Vhodná pre deti, dospievajúcich aj dospelých.', 90],
     ];
-    foreach ($seed as $i => [$name, $desc, $dur]) {
+    foreach ($seed as $i => $row) {
+        list($name, $desc, $dur) = $row;
         $t->execute([$name, $desc, $dur, $i + 1]);
     }
 
     $pdo->exec('PRAGMA user_version = 1');
 }
 
-function setting_get(string $key, ?string $default = null): ?string
+function setting_get($key, $default = null)
 {
     $s = db()->prepare('SELECT value FROM settings WHERE key = ?');
     $s->execute([$key]);
@@ -250,8 +252,8 @@ function setting_get(string $key, ?string $default = null): ?string
     return $v === false ? $default : (string) $v;
 }
 
-function setting_set(string $key, string $value): void
+function setting_set($key, $value)
 {
-    db()->prepare('INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value')
+    db()->prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)')
         ->execute([$key, $value]);
 }

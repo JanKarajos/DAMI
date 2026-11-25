@@ -8,7 +8,10 @@ foreach ($therapies as $t) {
     $online = therapy_is_online($t);
     foreach ($online ? therapists_for_therapy((int) $t['id']) : [] as $p) {
         $ids[] = (int) $p['id'];
-        $data['therapists'][$p['id']] ??= [
+        if (isset($data['therapists'][$p['id']])) {
+            continue;
+        }
+        $data['therapists'][$p['id']] = [
             'id' => (int) $p['id'],
             'name' => therapist_full_name($p),
             'initials' => mb_substr($p['first_name'], 0, 1) . mb_substr($p['last_name'], 0, 1),
@@ -28,7 +31,7 @@ foreach ($therapies as $t) {
         'inquiryUrl' => $online ? null : url('kontakt.php?terapia=' . $t['id']),
     ];
 }
-$data['preselect'] = (int) ($_GET['terapia'] ?? 0);
+$data['preselect'] = (int) (isset($_GET['terapia']) ? $_GET['terapia'] : 0);
 $data['csrf'] = csrf_token();
 $data['api'] = url('api.php');
 $data['horizonDays'] = (int) cfg('booking_horizon_days');

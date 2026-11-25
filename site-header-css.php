@@ -2,7 +2,7 @@
 // Štýly hlavného webu pre jeho hlavičku v rezervácii (upravené pre Shadow DOM).
 require __DIR__ . '/app/bootstrap.php';
 
-$f = (string) ($_GET['f'] ?? '');
+$f = (string) (isset($_GET['f']) ? $_GET['f'] : '');
 $h = site_header();
 // Iba štýly, ktoré index.html webu naozaj používa – nič iné sa týmto skriptom načítať nedá.
 if (!$h || !in_array($f, $h['css'], true) || !preg_match('/\.css(\?.*)?$/i', $f)) {
