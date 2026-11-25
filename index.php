@@ -1,6 +1,11 @@
 <?php
 require __DIR__ . '/app/bootstrap.php';
 
+// Ako súčasť webu ozdami.sk úvodnú stránku zastupuje hlavný web – ostáva iba rezervácia.
+if (cfg('main_site_nav')) {
+    redirect('rezervacia.php');
+}
+
 $therapies = therapies_all();
 $therapists = therapists_all();
 $byTherapist = therapies_by_therapist();

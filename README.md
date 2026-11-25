@@ -63,6 +63,35 @@ Pripomienky odosiela cron:
 
 Ak hosting cron nemá, nechajte `pseudo_cron => true`. Kontrola sa potom spustí pri návšteve webu, najviac raz za 10 minút.
 
+## Ako súčasť webu ozdami.sk (na hostingu)
+
+Rezervácia môže bežať priamo na hostingu webu, napr. `https://www.ozdami.sk/rezervacia/`. Návštevník tak neodíde z domény ozdami.sk.
+
+1. Na hosting (FTP alebo správca súborov) nahrajte obsah aplikácie do priečinka `rezervacia/` vedľa `index.html` webu.
+2. V nastaveniach hostingu zvoľte **PHP 8.1 alebo novšie** s rozšíreniami `pdo_sqlite`, `mbstring`, `openssl` a `gd`.
+3. Vytvorte `rezervacia/config.local.php`:
+   ```php
+   <?php
+   return [
+       'base_url'      => 'https://www.ozdami.sk/rezervacia',
+       'main_site_url' => 'https://www.ozdami.sk/',
+       'main_site_nav' => true,   // menu vedie na sekcie ozdami.sk, úvod aplikácie presmeruje na rezerváciu
+       'mail' => [ /* SMTP schránky na doméne ozdami.sk – viď E-maily */ ],
+   ];
+   ```
+4. Otvorte `https://www.ozdami.sk/rezervacia/admin/`. Prvé spustenie vytvorí databázu a tím. Prihláste sa ako `admin` / `admin123` a zmeňte heslo.
+5. Skontrolujte **Administrácia → Diagnostika servera**: zápis do `data/`, e-maily (testovací e-mail). Overte, že `https://www.ozdami.sk/rezervacia/data/dami.sqlite` vracia 403.
+6. Pripomienky: v cron úlohách hostingu spúšťajte každých 15 minút `php …/rezervacia/cron/pripomienky.php`. Ak hosting cron nemá, stačí predvolený pseudo-cron.
+
+Do HTML webu potom pridajte odkazy (relatívne, v rámci domény):
+
+| Odkaz | Kam vedie |
+|---|---|
+| `/rezervacia/rezervacia.php` | online rezervácia |
+| `/rezervacia/rezervacia.php?terapia=3` | rezervácia Neurofeedbacku (číslo služby nájdete v administrácii) |
+| `/rezervacia/kontakt.php?terapia=1` | kontaktný formulár pre ABA |
+| `/rezervacia/kontakt.php` | všeobecný kontaktný formulár |
+
 ## Synology NAS
 
 Sú dve možnosti. **Odporúčame Container Manager (Docker)**, lebo všetko potrebné (PHP 8.3, GD, Apache) je pripravené v `Dockerfile`. Ak váš NAS Container Manager nepodporuje (napr. modely série „j“), použite Web Station.

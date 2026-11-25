@@ -54,7 +54,7 @@ page_header('Kontaktný formulár', 'public', 'kontakt.php');
     <div class="card" style="max-width:720px">
       <h2>Ďakujeme, dopyt sme prijali.</h2>
       <p>Na váš e-mail sme poslali potvrdenie. Ozveme sa vám čo najskôr.</p>
-      <p><a class="btn" href="<?= e(url('index.php')) ?>">Späť na úvod</a></p>
+      <p><a class="btn" href="<?= e(cfg('main_site_nav') ? (string) cfg('main_site_url') : url('index.php')) ?>">Späť na úvod</a></p>
     </div>
   <?php else: ?>
     <div class="booking-layout">

@@ -7,6 +7,25 @@ declare(strict_types=1);
 function page_header(string $title, string $area = 'public', string $active = ''): void
 {
     $site = cfg('site_name');
+    $onMain = (bool) cfg('main_site_nav');     // aplikácia je súčasťou webu ozdami.sk
+    $main = rtrim((string) cfg('main_site_url'), '/') . '/';
+    $back = $onMain ? $main : 'index.php';
+    $publicNav = [];
+    if ($onMain) {
+        foreach ((array) cfg('main_site_sections') as $anchor => $label) {
+            $publicNav[$main . '#' . $anchor] = $label;
+        }
+        $publicNav['rezervacia.php'] = 'Rezervovať termín';
+    } else {
+        $publicNav = [
+            'index.php#uvod'     => 'Úvod',
+            'index.php#sluzby'   => 'Terapie',
+            'index.php#diagnostika' => 'Diagnostika',
+            'index.php#personal' => 'Personál',
+            'index.php#kontakty' => 'Kontakty',
+            'rezervacia.php'     => 'Rezervovať termín',
+        ];
+    }
     $nav = match ($area) {
         'admin' => current_admin() ? [
             'admin/index.php'      => 'Prehľad',
@@ -16,21 +35,14 @@ function page_header(string $title, string $area = 'public', string $active = ''
             'admin/dopyty.php'     => 'Dopyty' . (($n = inquiries_new_count()) ? " ($n)" : ''),
             'admin/heslo.php'      => 'Môj účet',
             'admin/odhlasenie.php' => 'Odhlásiť',
-        ] : ['index.php' => 'Späť na web'],
+        ] : [$back => 'Späť na web'],
         'therapist' => current_therapist() ? [
             'terapeut/index.php'      => 'Moje termíny',
             'terapeut/rezervacie.php' => 'Rezervácie',
             'terapeut/profil.php'     => 'Profil a heslo',
             'terapeut/odhlasenie.php' => 'Odhlásiť',
-        ] : ['index.php' => 'Späť na web'],
-        default => [
-            'index.php#uvod'     => 'Úvod',
-            'index.php#sluzby'   => 'Terapie',
-            'index.php#diagnostika' => 'Diagnostika',
-            'index.php#personal' => 'Personál',
-            'index.php#kontakty' => 'Kontakty',
-            'rezervacia.php'     => 'Rezervovať termín',
-        ],
+        ] : [$back => 'Späť na web'],
+        default => $publicNav,
     };
     $badge = match ($area) {
         'admin' => 'Administrácia',
@@ -50,7 +62,7 @@ function page_header(string $title, string $area = 'public', string $active = ''
 <body class="area-<?= e($area) ?>">
 <header class="site-header">
   <div class="nav-shell">
-    <a class="brand" href="<?= e(url($area === 'public' ? 'index.php' : ($area === 'admin' ? 'admin/index.php' : 'terapeut/index.php'))) ?>">
+    <a class="brand" href="<?= e(nav_href($area === 'public' ? $back : ($area === 'admin' ? 'admin/index.php' : 'terapeut/index.php'))) ?>">
       <img src="<?= e(url('assets/logo.png')) ?>" alt="DAMI občianske združenie" width="146" height="43">
       <?php if ($badge): ?><span class="brand-badge"><?= e($badge) ?></span><?php endif; ?>
     </a>
@@ -58,7 +70,7 @@ function page_header(string $title, string $area = 'public', string $active = ''
     <nav class="main-nav">
       <?php foreach ($nav as $href => $label):
           $cta = in_array($href, ['rezervacia.php'], true); ?>
-        <a href="<?= e(url($href)) ?>" class="<?= $active === $href ? 'active' : '' ?><?= $cta ? ' nav-cta' : '' ?>" onclick="document.body.classList.remove('nav-open')"><?= e($label) ?><?= $cta ? ' <span>↘</span>' : '' ?></a>
+        <a href="<?= e(nav_href($href)) ?>" class="<?= $active === $href ? 'active' : '' ?><?= $cta ? ' nav-cta' : '' ?>" onclick="document.body.classList.remove('nav-open')"><?= e($label) ?><?= $cta ? ' <span>↘</span>' : '' ?></a>
       <?php endforeach; ?>
     </nav>
   </div>
@@ -73,6 +85,12 @@ function page_header(string $title, string $area = 'public', string $active = ''
     <?php endforeach; ?>
   </div>
 <?php endif;
+}
+
+/** Odkaz v menu: absolútne adresy (web ozdami.sk) nechá tak, ostatné sú v rámci aplikácie. */
+function nav_href(string $href): string
+{
+    return preg_match('#^(https?:)?//#i', $href) ? $href : url($href);
 }
 
 function page_footer(): void

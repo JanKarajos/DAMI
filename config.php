@@ -11,6 +11,13 @@ $config = [
     'db_path'      => __DIR__ . '/data/dami.sqlite',
 
     'main_site_url' => 'http://www.ozdami.sk/',
+    // true = rezervácia je súčasťou webu ozdami.sk (napr. www.ozdami.sk/rezervacia/):
+    // menu vedie na sekcie hlavného webu a úvodná stránka aplikácie presmeruje na rezerváciu.
+    'main_site_nav' => false,
+    'main_site_sections' => [
+        'uvod' => 'Úvod', 'onas' => 'O nás', 'sluzby' => 'Služby',
+        'personal' => 'Personál', 'fotogaleria' => 'Fotogaléria', 'kontakty' => 'Kontakty',
+    ],
     'registration'  => 'Registrované na Ministerstve vnútra Slovenskej republiky, 12.12. 2008, Číslo spisu: VV3/1 – 900/90 – 33110',
 
     'contact' => [
