@@ -56,10 +56,14 @@ function page_header(string $title, string $area = 'public', string $active = ''
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title><?= e($title) ?> | <?= e($site) ?></title>
-<link rel="stylesheet" href="<?= e(url('assets/style.css')) ?>?v=3">
+<link rel="stylesheet" href="<?= e(url('assets/style.css')) ?>?v=4">
 <link rel="icon" type="image/png" href="<?= e(url('assets/favicon.png')) ?>">
 </head>
-<body class="area-<?= e($area) ?>">
+<?php $siteHeader = $area === 'public' ? site_header() : null; ?>
+<body class="area-<?= e($area) ?><?= $siteHeader ? ' with-site-header' : '' ?>">
+<?php if ($siteHeader): ?>
+<?= site_header_render($siteHeader) ?>
+<?php else: ?>
 <header class="site-header">
   <div class="nav-shell">
     <a class="brand" href="<?= e(nav_href($area === 'public' ? $back : ($area === 'admin' ? 'admin/index.php' : 'terapeut/index.php'))) ?>">
@@ -75,6 +79,7 @@ function page_header(string $title, string $area = 'public', string $active = ''
     </nav>
   </div>
 </header>
+<?php endif; ?>
 <main>
 <?php
     $flashes = take_flashes();

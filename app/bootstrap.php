@@ -14,6 +14,7 @@ require __DIR__ . '/mailer.php';
 require __DIR__ . '/booking.php';
 require __DIR__ . '/inquiries.php';
 require __DIR__ . '/photos.php';
+require __DIR__ . '/site_header.php';
 require __DIR__ . '/layout.php';
 
 if (PHP_SAPI !== 'cli') {
