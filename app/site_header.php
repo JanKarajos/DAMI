@@ -171,10 +171,16 @@ function site_part_styles(array $h)
 /** Vloží časť webu (hlavičku alebo pätičku) do Shadow DOM. $js beží s premennou root. */
 function site_part_render($id, $html, array $h, $js = '')
 {
-    return '<div id="' . $id . '-host"></div>'
+    // Časť je skrytá, kým sa nenačítajú štýly webu – inak by sa na chvíľu ukázala bez štýlov (veľké logo).
+    return '<div id="' . $id . '-host" style="visibility:hidden"></div>'
         . '<template id="' . $id . '-tpl">' . site_part_styles($h) . $html . '</template>'
         . '<script>(function(){var host=document.getElementById("' . $id . '-host"),tpl=document.getElementById("' . $id . '-tpl");'
-        . 'if(!host||!tpl||!host.attachShadow)return;var root=host.attachShadow({mode:"open"});root.appendChild(tpl.content.cloneNode(true));'
+        . 'if(!host||!tpl||!host.attachShadow){if(host)host.style.visibility="";return;}var root=host.attachShadow({mode:"open"});root.appendChild(tpl.content.cloneNode(true));'
+        . 'var links=root.querySelectorAll("link[rel=stylesheet]"),left=links.length,shown=false;'
+        . 'var show=function(){if(!shown){shown=true;host.style.visibility="";}};'
+        . 'var done=function(){if(--left<=0)show();};'
+        . 'if(!left)show();for(var i=0;i<links.length;i++){if(links[i].sheet){done();}else{links[i].addEventListener("load",done);links[i].addEventListener("error",done);}}'
+        . 'setTimeout(show,3000);'
         . $js . '})();</script>';
 }
 

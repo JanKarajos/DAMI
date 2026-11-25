@@ -20,7 +20,10 @@ require __DIR__ . '/photos.php';
 require __DIR__ . '/site_header.php';
 require __DIR__ . '/layout.php';
 
-if (PHP_SAPI !== 'cli') {
+if (PHP_SAPI !== 'cli' && defined('DAMI_STATIC')) {
+    // statické súbory (štýly webu) – bez session, aby sa dali ukladať do vyrovnávacej pamäte prehliadača
+    set_exception_handler('render_fatal_error');
+} elseif (PHP_SAPI !== 'cli') {
     set_exception_handler('render_fatal_error');
     session_name('dami_sess');
     if (PHP_VERSION_ID >= 70300) {
