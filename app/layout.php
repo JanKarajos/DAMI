@@ -6,6 +6,7 @@ declare(strict_types=1);
  */
 function page_header(string $title, string $area = 'public', string $active = ''): void
 {
+    $GLOBALS['__page_area'] = $area;
     $site = cfg('site_name');
     $onMain = (bool) cfg('main_site_nav');     // aplikácia je súčasťou webu ozdami.sk
     $main = rtrim((string) cfg('main_site_url'), '/') . '/';
@@ -102,6 +103,14 @@ function page_footer(): void
 {
     ?>
 </main>
+<?php
+    // Rezervácia ako súčasť webu: rovnaká pätička ako na ozdami.sk
+    $siteHeader = site_header();
+    if ($siteHeader && !empty($siteHeader['footer']) && ($GLOBALS['__page_area'] ?? '') === 'public') {
+        echo site_footer_render($siteHeader), "\n</body>\n</html>\n";
+        return;
+    }
+    ?>
 <footer class="site-footer">
   <div class="container">
     <div class="footer-grid">

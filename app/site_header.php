@@ -60,6 +60,22 @@ function site_header(): ?array
         $s->parentNode->removeChild($s);
     }
 
+    // Pätička webu (rovnaké prepísanie odkazov a obrázkov, bez zvýraznenia)
+    $footerHtml = null;
+    $footer = $xp->query('//body//footer[not(ancestor::header)]')->item(0);
+    if ($footer) {
+        foreach ($xp->query('.//a[@href]', $footer) as $a) {
+            $a->setAttribute('href', site_header_abs($a->getAttribute('href'), $main));
+        }
+        foreach ($xp->query('.//img[@src]', $footer) as $img) {
+            $img->setAttribute('src', site_header_abs($img->getAttribute('src'), $main));
+        }
+        foreach ($xp->query('.//script', $footer) as $s) {
+            $s->parentNode->removeChild($s);
+        }
+        $footerHtml = $doc->saveHTML($footer);
+    }
+
     $css = [];
     foreach ($xp->query('//head/link[@href]') as $link) {
         /** @var DOMElement $link */
@@ -67,7 +83,7 @@ function site_header(): ?array
             $css[] = $link->getAttribute('href');
         }
     }
-    $result = ['html' => $doc->saveHTML($header), 'css' => $css];
+    $result = ['html' => $doc->saveHTML($header), 'footer' => $footerHtml, 'css' => $css];
     return $result;
 }
 
@@ -122,25 +138,41 @@ function site_header_css(string $file): ?string
         fn($m) => 'url(' . $m[1] . site_header_abs($m[2], $base) . $m[1] . ')', $css);
 }
 
-/** HTML na vloženie hneď za <body>. */
-function site_header_render(array $h): string
+/** Spoločný začiatok Shadow DOM: štýly webu + základ, ktorý web nastavuje na <body>. */
+function site_part_styles(array $h): string
 {
     $links = '';
     foreach ($h['css'] as $href) {
         $links .= '<link rel="stylesheet" href="' . e(url('site-header-css.php') . '?f=' . rawurlencode($href)) . '">';
     }
-    // Základ, ktorý web nastavuje na <body> (v Shadow DOM sa nededí).
-    $base = '<style>:host{display:block;font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif;'
+    return $links . '<style>:host{display:block;font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif;'
         . 'line-height:1.55;-webkit-font-smoothing:antialiased;color:var(--ink,#183247)}</style>';
-    return '<div id="site-header-host"></div>'
-        . '<template id="site-header-tpl">' . $links . $base . $h['html'] . '</template>'
-        . '<script>(function(){var host=document.getElementById("site-header-host"),tpl=document.getElementById("site-header-tpl");'
+}
+
+/** Vloží časť webu (hlavičku alebo pätičku) do Shadow DOM. $js beží s premennou root. */
+function site_part_render(string $id, string $html, array $h, string $js = ''): string
+{
+    return '<div id="' . $id . '-host"></div>'
+        . '<template id="' . $id . '-tpl">' . site_part_styles($h) . $html . '</template>'
+        . '<script>(function(){var host=document.getElementById("' . $id . '-host"),tpl=document.getElementById("' . $id . '-tpl");'
         . 'if(!host||!tpl||!host.attachShadow)return;var root=host.attachShadow({mode:"open"});root.appendChild(tpl.content.cloneNode(true));'
-        . 'var header=root.querySelector("[data-header]")||root.querySelector("header"),toggle=root.querySelector("[data-menu-toggle]"),menu=root.querySelector("[data-menu]");'
+        . $js . '})();</script>';
+}
+
+/** Hlavička webu – vkladá sa hneď za <body>. */
+function site_header_render(array $h): string
+{
+    return site_part_render('site-header', $h['html'], $h,
+        'var header=root.querySelector("[data-header]")||root.querySelector("header"),toggle=root.querySelector("[data-menu-toggle]"),menu=root.querySelector("[data-menu]");'
         . 'var upd=function(){header&&header.classList.toggle("scrolled",window.scrollY>18)};upd();window.addEventListener("scroll",upd,{passive:true});'
         . 'var close=function(){menu&&menu.classList.remove("open");toggle&&toggle.setAttribute("aria-expanded","false");document.body.classList.remove("menu-open")};'
         . 'toggle&&toggle.addEventListener("click",function(){var o=toggle.getAttribute("aria-expanded")==="true";toggle.setAttribute("aria-expanded",String(!o));'
         . 'menu&&menu.classList.toggle("open",!o);document.body.classList.toggle("menu-open",!o)});'
-        . 'menu&&menu.querySelectorAll("a").forEach(function(a){a.addEventListener("click",close)});'
-        . 'document.documentElement.classList.add("has-site-header")})();</script>';
+        . 'menu&&menu.querySelectorAll("a").forEach(function(a){a.addEventListener("click",close)});');
+}
+
+/** Pätička webu – vkladá sa namiesto pätičky aplikácie. */
+function site_footer_render(array $h): string
+{
+    return site_part_render('site-footer', (string) $h['footer'], $h);
 }

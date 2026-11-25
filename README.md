@@ -83,7 +83,7 @@ Rezervácia môže bežať priamo na hostingu webu, napr. `https://www.ozdami.sk
 5. Skontrolujte **Administrácia → Diagnostika servera**: zápis do `data/`, e-maily (testovací e-mail). Overte, že `https://www.ozdami.sk/rezervacia/data/dami.sqlite` vracia 403.
 6. Pripomienky: v cron úlohách hostingu spúšťajte každých 15 minút `php …/rezervacia/cron/pripomienky.php`. Ak hosting cron nemá, stačí predvolený pseudo-cron.
 
-S `main_site_nav => true` má rezervácia **rovnaké horné menu ako web**. Hlavička (`<header class="site-header">`) sa načíta priamo z `index.html` webu v nadradenom priečinku spolu s jeho CSS a vloží sa do Shadow DOM, takže štýly webu a aplikácie sa neovplyvňujú. Odkaz na rezerváciu je v menu zvýraznený. Keď na webe zmeníte menu, rezervácia ho prevezme automaticky. Ak web nie je na tom istom serveri, hlavička sa stiahne z `main_site_url` a hodinu sa drží v `data/`.
+S `main_site_nav => true` má rezervácia **rovnaké horné menu aj pätičku ako web**. Hlavička (`<header class="site-header">`) a pätička (`<footer>`) sa načíta priamo z `index.html` webu v nadradenom priečinku spolu s jeho CSS a vloží sa do Shadow DOM, takže štýly webu a aplikácie sa neovplyvňujú. Odkaz na rezerváciu je v menu zvýraznený. Keď na webe zmeníte menu alebo pätičku, rezervácia ich prevezme automaticky. Administrácia a portál terapeuta majú vlastné menu a sú dostupné na `/rezervacia/admin/` a `/rezervacia/terapeut/`. Ak web nie je na tom istom serveri, hlavička sa stiahne z `main_site_url` a hodinu sa drží v `data/`.
 
 Do HTML webu potom pridajte odkazy (relatívne, v rámci domény):
 
