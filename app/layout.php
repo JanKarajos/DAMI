@@ -8,7 +8,7 @@ function page_header($title, $area = 'public', $active = '')
     $GLOBALS['__page_area'] = $area;
     $site = cfg('site_name');
     $onMain = (bool) cfg('main_site_nav');     // aplikácia je súčasťou webu ozdami.sk
-    $main = rtrim((string) cfg('main_site_url'), '/') . '/';
+    $main = site_main_base();
     $back = $onMain ? $main : 'index.php';
     $publicNav = [];
     if ($onMain) {

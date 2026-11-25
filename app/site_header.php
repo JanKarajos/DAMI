@@ -22,7 +22,7 @@ function site_header()
     if (!cfg('main_site_nav') || !class_exists('DOMDocument')) {
         return null;
     }
-    $main = rtrim((string) cfg('main_site_url'), '/') . '/';
+    $main = site_main_base();
     $html = site_header_source('index.html');
     if ($html === null) {
         return null;
@@ -86,12 +86,31 @@ function site_header()
     return $result;
 }
 
+/**
+ * Adresa hlavného webu pre odkazy v menu, logu a pätičke.
+ * Ak je rezervácia v podpriečinku webu (index.html je o priečinok vyššie), použije sa cesta
+ * na tom istom serveri, napr. "/". Odkazy potom fungujú cez http aj https bez ohľadu na nastavenie.
+ * Inak (napr. rezervácia na NAS) sa použije main_site_url.
+ */
+function site_main_base()
+{
+    if (is_file(dirname(APP_ROOT) . '/index.html')) {
+        $base = rtrim(url(''), '/');                 // napr. /rezervacia
+        $pos = strrpos($base, '/');
+        return ($pos === false ? '' : substr($base, 0, $pos)) . '/';
+    }
+    return rtrim((string) cfg('main_site_url'), '/') . '/';
+}
+
 function site_header_abs($href, $main)
 {
     if ($href === '' || preg_match('#^([a-z][a-z0-9+.-]*:|//)#i', $href)) {
         return $href;                                // https:, mailto:, tel:, //cdn…
     }
     if ($href[0] === '/') {
+        if ($main[0] === '/') {
+            return $href;                            // web na tom istom serveri
+        }
         $origin = preg_replace('#^(https?://[^/]+).*$#i', '$1', $main);
         return $origin . $href;
     }
@@ -131,8 +150,9 @@ function site_header_css($file)
     }
     $css = preg_replace('/:root\b/', ':host', $css);
     // relatívne url(...) v CSS smerujú na web
-    $base = rtrim((string) cfg('main_site_url'), '/') . '/' . ltrim(dirname('/' . ltrim($file, '/')), '/');
-    $base = rtrim($base, '/') . '/';
+    $file = ltrim($file, '/');
+    $dir = strrpos($file, '/') === false ? '' : substr($file, 0, strrpos($file, '/') + 1);
+    $base = site_main_base() . $dir;
     return preg_replace_callback('/url\(\s*([\'"]?)(?!data:|https?:|\/\/|#)([^\'")]+)\1\s*\)/i',
         function ($m) use ($base) { return 'url(' . $m[1] . site_header_abs($m[2], $base) . $m[1] . ')'; }, $css);
 }
